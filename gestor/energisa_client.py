@@ -2,24 +2,27 @@ import requests
 import os
 
 class EnergisaGatewayClient:
-    # Pega o URL do ambiente ou usa localhost como fallback
-    def __init__(self, base_url=os.getenv("GATEWAY_URL", "http://localhost:3000")): 
+    def __init__(self, base_url=os.getenv("GATEWAY_URL", "http://localhost:3000")):
         self.base_url = base_url
         self.token = None
-        # Credenciais definidas no seu main.py original (CLIENTS_DB)
+        # Credenciais fixas para comunicação interna
         self.client_id = "7966649d-d20a-4129-afbd-341f51aa74d6" 
         self.client_secret = os.getenv("CRM_SECRET", "cnOOJJCg8VK3W11xOo6vhaHd4RNTP-ALT06#cs#I")
 
     def authenticate(self):
-        """Obtém o Token Bearer da sua API Gateway"""
-        resp = requests.post(f"{self.base_url}/api/token", json={
-            "client_id": self.client_id,
-            "client_secret": self.client_secret
-        })
-        if resp.status_code == 200:
-            self.token = resp.json()["access_token"]
-            return True
-        return False
+        try:
+            resp = requests.post(f"{self.base_url}/api/token", json={
+                "client_id": self.client_id,
+                "client_secret": self.client_secret
+            })
+            if resp.status_code == 200:
+                self.token = resp.json()["access_token"]
+                return True
+            print(f"Falha autenticação Gateway: {resp.text}")
+            return False
+        except Exception as e:
+            print(f"Erro conexão Gateway: {e}")
+            return False
 
     def _get_headers(self):
         if not self.token:
@@ -27,16 +30,16 @@ class EnergisaGatewayClient:
         return {"Authorization": f"Bearer {self.token}"}
 
     def start_login(self, cpf, final_tel):
-        """Inicia o processo e pede SMS"""
+        """Inicia o login pedindo SMS"""
         resp = requests.post(
             f"{self.base_url}/auth/login/start",
             json={"cpf": cpf, "final_telefone": final_tel},
             headers=self._get_headers()
         )
-        return resp.json() # Retorna transaction_id
+        return resp.json()
 
     def finish_login(self, cpf, transaction_id, sms_code):
-        """Envia o SMS para finalizar"""
+        """Finaliza o login com o código SMS"""
         resp = requests.post(
             f"{self.base_url}/auth/login/finish",
             json={"cpf": cpf, "transaction_id": transaction_id, "sms_code": sms_code},
@@ -45,7 +48,7 @@ class EnergisaGatewayClient:
         return resp.json()
 
     def list_ucs(self, cpf):
-        """Busca UCs da API Gateway"""
+        """Lista todas as UCs vinculadas ao CPF"""
         resp = requests.post(
             f"{self.base_url}/ucs",
             json={"cpf": cpf},
@@ -54,30 +57,34 @@ class EnergisaGatewayClient:
         return resp.json()
 
     def list_faturas(self, cpf, uc_data):
-        """Busca faturas de uma UC específica"""
+        """Lista as faturas de uma UC específica"""
+        # uc_data deve ter: cdc, codigoEmpresaWeb, digitoVerificadorCdc (ou digitoVerificador)
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            "digitoVerificadorCdc": uc_data['digito_verificador']
+            # O Gateway espera digitoVerificadorCdc
+            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador')
         }
         resp = requests.post(
             f"{self.base_url}/faturas/listar",
             json=payload,
             headers=self._get_headers()
         )
-        return resp.json()
+        if resp.status_code == 200:
+            return resp.json()
+        return [] # Retorna lista vazia em caso de erro para não quebrar o loop
 
     def download_fatura(self, cpf, uc_data, fatura_data):
-        """Baixa o PDF e retorna em Base64"""
+        """Baixa o PDF da fatura"""
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            "digitoVerificadorCdc": uc_data['digito_verificador'],
+            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador'),
             "ano": fatura_data['ano'],
             "mes": fatura_data['mes'],
-            "numeroFatura": fatura_data['numero_fatura']
+            "numeroFatura": fatura_data['numeroFatura']
         }
         resp = requests.post(
             f"{self.base_url}/faturas/pdf",
@@ -85,19 +92,20 @@ class EnergisaGatewayClient:
             headers=self._get_headers()
         )
         if resp.status_code == 200:
-            return resp.json() # {filename, file_base64}
+            return resp.json()
         return None
-    # Adicione este método na classe EnergisaGatewayClient
+
     def get_gd_info(self, cpf, uc_data):
-        """Busca dados detalhados de Geração Distribuída"""
+        """Busca detalhes da Usina (Saldo, Beneficiárias)"""
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            "digitoVerificadorCdc": uc_data['digito_verificador']
+            # Importante: O Gateway espera 'digitoVerificadorCdc' no objeto UcRequest
+            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador')
         }
         resp = requests.post(
-            f"{self.base_url}/gd/info", # Endpoint do Gateway
+            f"{self.base_url}/gd/info",
             json=payload,
             headers=self._get_headers()
         )
