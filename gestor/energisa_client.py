@@ -5,7 +5,6 @@ class EnergisaGatewayClient:
     def __init__(self, base_url=os.getenv("GATEWAY_URL", "http://localhost:3000")):
         self.base_url = base_url
         self.token = None
-        # Credenciais fixas para comunicação interna
         self.client_id = "7966649d-d20a-4129-afbd-341f51aa74d6" 
         self.client_secret = os.getenv("CRM_SECRET", "cnOOJJCg8VK3W11xOo6vhaHd4RNTP-ALT06#cs#I")
 
@@ -29,8 +28,9 @@ class EnergisaGatewayClient:
             self.authenticate()
         return {"Authorization": f"Bearer {self.token}"}
 
+    
+
     def start_login(self, cpf, final_tel):
-        """Inicia o login pedindo SMS"""
         resp = requests.post(
             f"{self.base_url}/auth/login/start",
             json={"cpf": cpf, "final_telefone": final_tel},
@@ -39,7 +39,6 @@ class EnergisaGatewayClient:
         return resp.json()
 
     def finish_login(self, cpf, transaction_id, sms_code):
-        """Finaliza o login com o código SMS"""
         resp = requests.post(
             f"{self.base_url}/auth/login/finish",
             json={"cpf": cpf, "transaction_id": transaction_id, "sms_code": sms_code},
@@ -48,23 +47,30 @@ class EnergisaGatewayClient:
         return resp.json()
 
     def list_ucs(self, cpf):
-        """Lista todas as UCs vinculadas ao CPF"""
         resp = requests.post(
             f"{self.base_url}/ucs",
             json={"cpf": cpf},
             headers=self._get_headers()
         )
         return resp.json()
+        
+    def _get_digito(self, uc_data):
+        # Procura por qualquer variação do nome do campo
+        chaves_possiveis = ['digitoVerificadorCdc', 'digitoVerificador', 'digito_verificador', 'digito']
+        
+        for chave in chaves_possiveis:
+            if chave in uc_data and uc_data[chave] is not None:
+                return uc_data[chave]
+        
+        # Se não achar nada, retorna 0 (padrão seguro)
+        return 0
 
     def list_faturas(self, cpf, uc_data):
-        """Lista as faturas de uma UC específica"""
-        # uc_data deve ter: cdc, codigoEmpresaWeb, digitoVerificadorCdc (ou digitoVerificador)
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            # O Gateway espera digitoVerificadorCdc
-            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador')
+            "digitoVerificadorCdc": self._get_digito(uc_data) # <--- CORREÇÃO AQUI
         }
         resp = requests.post(
             f"{self.base_url}/faturas/listar",
@@ -73,18 +79,17 @@ class EnergisaGatewayClient:
         )
         if resp.status_code == 200:
             return resp.json()
-        return [] # Retorna lista vazia em caso de erro para não quebrar o loop
+        return [] 
 
     def download_fatura(self, cpf, uc_data, fatura_data):
-        """Baixa o PDF da fatura"""
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador'),
+            "digitoVerificadorCdc": self._get_digito(uc_data), # <--- CORREÇÃO AQUI
             "ano": fatura_data['ano'],
             "mes": fatura_data['mes'],
-            "numeroFatura": fatura_data['numeroFatura']
+            "numeroFatura": fatura_data['numero_fatura']
         }
         resp = requests.post(
             f"{self.base_url}/faturas/pdf",
@@ -96,13 +101,11 @@ class EnergisaGatewayClient:
         return None
 
     def get_gd_info(self, cpf, uc_data):
-        """Busca detalhes da Usina (Saldo, Beneficiárias)"""
         payload = {
             "cpf": cpf,
             "cdc": uc_data['cdc'],
             "codigoEmpresaWeb": uc_data['empresa_web'],
-            # Importante: O Gateway espera 'digitoVerificadorCdc' no objeto UcRequest
-            "digitoVerificadorCdc": uc_data.get('digitoVerificadorCdc') or uc_data.get('digitoVerificador')
+            "digitoVerificadorCdc": self._get_digito(uc_data) # <--- CORREÇÃO AQUI
         }
         resp = requests.post(
             f"{self.base_url}/gd/info",
