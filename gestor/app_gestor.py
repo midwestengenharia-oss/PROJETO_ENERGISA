@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
@@ -314,6 +314,10 @@ def iniciar_conexao_energisa(
     usuario: Usuario = Depends(get_usuario_atual),
     db: Session = Depends(get_db)
 ):
+    """
+    Inicia o processo de conexão com a Energisa.
+    Retorna a lista de telefones disponíveis para o usuário escolher.
+    """
     cliente = db.query(Cliente).filter(
         Cliente.id == id,
         Cliente.usuario_id == usuario.id
@@ -322,18 +326,76 @@ def iniciar_conexao_energisa(
         raise HTTPException(404, "Cliente nao encontrado")
 
     try:
-        print(f"Iniciando conexao para {cliente.nome_empresa}...")
-        resp = gateway.start_login(cliente.responsavel_cpf, cliente.telefone_login)
+        print(f"\n{'='*60}")
+        print(f"[CONECTAR] Iniciando conexao para {cliente.nome_empresa}...")
+        print(f"CPF: {cliente.responsavel_cpf}")
+        print(f"{'='*60}")
+
+        # Usa o endpoint público que retorna lista de telefones
+        resp = gateway.iniciar_simulacao(cliente.responsavel_cpf)
+
+        print(f"Resposta do gateway:")
+        print(f"  - Transaction ID: {resp.get('transaction_id')}")
+        print(f"  - Lista Telefone: {resp.get('listaTelefone', [])}")
+        print(f"{'='*60}\n")
 
         cliente.transaction_id = resp.get("transaction_id")
-        cliente.status_conexao = "AGUARDANDO_SMS"
+        cliente.status_conexao = "AGUARDANDO_TELEFONE"
         db.commit()
-        return {"msg": "SMS Enviado", "transaction_id": cliente.transaction_id}
+
+        return {
+            "msg": "Telefones carregados",
+            "transaction_id": cliente.transaction_id,
+            "listaTelefone": resp.get("listaTelefone", [])
+        }
 
     except Exception as e:
-        print(f"Aviso no login: {e}. Tentando sincronizar dados existentes...")
-        sincronizar_dados_cliente(cliente.id)
-        return {"msg": "Processo de sincronizacao iniciado.", "details": str(e)}
+        print(f"❌ Erro ao iniciar conexao: {e}")
+        raise HTTPException(500, f"Erro ao carregar telefones: {str(e)}")
+
+
+@app.post("/empresas/{id}/enviar-sms")
+def enviar_sms_telefone(
+    id: int,
+    telefone: str = Query(...),
+    usuario: Usuario = Depends(get_usuario_atual),
+    db: Session = Depends(get_db)
+):
+    """
+    Envia o SMS para o telefone selecionado pelo usuário.
+    """
+    cliente = db.query(Cliente).filter(
+        Cliente.id == id,
+        Cliente.usuario_id == usuario.id
+    ).first()
+    if not cliente:
+        raise HTTPException(404, "Cliente nao encontrado")
+
+    if not cliente.transaction_id:
+        raise HTTPException(400, "Nenhuma transacao ativa. Inicie a conexao primeiro.")
+
+    try:
+        print(f"\n{'='*60}")
+        print(f"[ENVIAR SMS] Cliente: {cliente.nome_empresa}")
+        print(f"[ENVIAR SMS] Transaction ID: {cliente.transaction_id}")
+        print(f"[ENVIAR SMS] Telefone selecionado: {telefone}")
+        print(f"{'='*60}")
+
+        # Envia o SMS para o telefone escolhido
+        resp = gateway.enviar_sms_simulacao(cliente.transaction_id, telefone)
+
+        print(f"✅ SMS enviado com sucesso!")
+        print(f"Resposta: {resp}")
+        print(f"{'='*60}\n")
+
+        cliente.status_conexao = "AGUARDANDO_SMS"
+        db.commit()
+
+        return {"msg": "SMS enviado com sucesso", "success": True}
+
+    except Exception as e:
+        print(f"❌ Erro ao enviar SMS: {e}")
+        raise HTTPException(500, f"Erro ao enviar SMS: {str(e)}")
 
 
 @app.post("/empresas/{id}/validar-sms")
@@ -344,6 +406,10 @@ def validar_sms(
     usuario: Usuario = Depends(get_usuario_atual),
     db: Session = Depends(get_db)
 ):
+    """
+    Valida o código SMS e completa a conexão com a Energisa.
+    Após validar, inicia a sincronização dos dados.
+    """
     cliente = db.query(Cliente).filter(
         Cliente.id == id,
         Cliente.usuario_id == usuario.id
@@ -351,15 +417,31 @@ def validar_sms(
     if not cliente:
         raise HTTPException(404, "Cliente nao encontrado")
 
-    try:
-        gateway.finish_login(cliente.responsavel_cpf, cliente.transaction_id, codigo_sms)
-        cliente.status_conexao = "CONECTADO"
-        cliente.ultimo_login = datetime.now()
-        db.commit()
+    if not cliente.transaction_id:
+        raise HTTPException(400, "Nenhuma transacao ativa.")
 
-        background_tasks.add_task(sincronizar_dados_cliente, cliente.id)
-        return {"msg": "Conectado com sucesso!"}
+    try:
+        print(f"Validando SMS para cliente {cliente.nome_empresa}...")
+
+        # Valida o SMS usando o endpoint público
+        resp = gateway.validar_sms_simulacao(cliente.transaction_id, codigo_sms)
+
+        if resp.get("success"):
+            cliente.status_conexao = "CONECTADO"
+            cliente.ultimo_login = datetime.now()
+            db.commit()
+
+            # Inicia a sincronização dos dados em background
+            background_tasks.add_task(sincronizar_dados_cliente, cliente.id)
+
+            return {"msg": "Conectado com sucesso!", "success": True}
+        else:
+            raise HTTPException(400, "Falha ao validar SMS")
+
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Erro ao validar SMS: {e}")
         raise HTTPException(400, f"Falha ao validar SMS: {str(e)}")
 
 

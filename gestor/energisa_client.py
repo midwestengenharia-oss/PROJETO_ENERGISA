@@ -28,7 +28,46 @@ class EnergisaGatewayClient:
             self.authenticate()
         return {"Authorization": f"Bearer {self.token}"}
 
-    
+    # --- MÉTODOS PARA CONEXÃO COM SELEÇÃO DE TELEFONE ---
+
+    def iniciar_simulacao(self, cpf):
+        """
+        Inicia o processo de conexão com a Energisa usando o endpoint público.
+        Retorna a lista de telefones disponíveis para o usuário escolher.
+        """
+        resp = requests.post(
+            f"{self.base_url}/public/simulacao/iniciar",
+            json={"cpf": cpf}
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        raise Exception(f"Erro ao iniciar simulação: {resp.text}")
+
+    def enviar_sms_simulacao(self, transaction_id, telefone):
+        """
+        Envia o SMS para o telefone selecionado pelo usuário.
+        """
+        resp = requests.post(
+            f"{self.base_url}/public/simulacao/enviar-sms",
+            json={"transactionId": transaction_id, "telefone": telefone}
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        raise Exception(f"Erro ao enviar SMS: {resp.text}")
+
+    def validar_sms_simulacao(self, session_id, codigo_sms):
+        """
+        Valida o código SMS usando o endpoint público.
+        """
+        resp = requests.post(
+            f"{self.base_url}/public/simulacao/validar-sms",
+            json={"sessionId": session_id, "codigo": codigo_sms}
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        raise Exception(f"Erro ao validar SMS: {resp.text}")
+
+    # --- MÉTODOS ANTIGOS (MANTIDOS PARA COMPATIBILIDADE) ---
 
     def start_login(self, cpf, final_tel):
         resp = requests.post(

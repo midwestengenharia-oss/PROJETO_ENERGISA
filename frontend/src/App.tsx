@@ -73,6 +73,9 @@ function App() {
   const [faturaDetalhe, setFaturaDetalhe] = useState<Fatura | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [smsModalOpen, setSmsModalOpen] = useState(false);
+  const [phoneSelectModalOpen, setPhoneSelectModalOpen] = useState(false);
+  const [listaTelefone, setListaTelefone] = useState<Array<{ celular: string, cdc: number, digitoVerificador: number, posicao: number }>>([]);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const [novoCpf, setNovoCpf] = useState("");
   const [novoTel, setNovoTel] = useState("");
@@ -429,12 +432,56 @@ function App() {
   const handleConnect = async (id: number) => {
     setLoading(true);
     try {
-      await api.post(`/empresas/${id}/conectar`);
+      console.log('🔵 [CONECTAR] Iniciando conexão para empresa ID:', id);
+      const response = await api.post(`/empresas/${id}/conectar`);
+      console.log('🔵 [CONECTAR] Resposta do backend:', response.data);
+
       setSelectedEmpresaId(id);
-      setSmsModalOpen(true);
-      toast.info('SMS enviado! Digite o codigo recebido');
+
+      if (response.data.listaTelefone && response.data.listaTelefone.length > 0) {
+        console.log('🔵 [CONECTAR] Lista de telefones recebida:', response.data.listaTelefone);
+        // Novo fluxo: mostra lista de telefones
+        setListaTelefone(response.data.listaTelefone);
+        setPhoneSelectModalOpen(true);
+        console.log('🔵 [CONECTAR] Modal de telefone aberto');
+        toast.info('Selecione o telefone para receber o SMS');
+      } else {
+        console.log('⚠️ [CONECTAR] Nenhuma lista de telefone, abrindo modal SMS direto');
+        // Fallback: caso não tenha lista, abre direto o modal de SMS
+        setSmsModalOpen(true);
+        toast.info('SMS enviado! Digite o codigo recebido');
+      }
     } catch (e: any) {
+      console.error('❌ [CONECTAR] Erro:', e);
       toast.error(e.message || 'Erro ao conectar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectPhone = async () => {
+    if (!selectedPhone || !selectedEmpresaId) {
+      toast.error('Selecione um telefone');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('📞 [ENVIAR SMS] Telefone selecionado:', selectedPhone);
+      console.log('📞 [ENVIAR SMS] Empresa ID:', selectedEmpresaId);
+
+      await api.post(`/empresas/${selectedEmpresaId}/enviar-sms`, null, {
+        params: { telefone: selectedPhone }
+      });
+
+      console.log('📞 [ENVIAR SMS] SMS enviado com sucesso');
+
+      setPhoneSelectModalOpen(false);
+      setSmsModalOpen(true);
+      toast.success(`SMS enviado para ${selectedPhone}!`);
+    } catch (e: any) {
+      console.error('❌ [ENVIAR SMS] Erro:', e);
+      toast.error(e.message || 'Erro ao enviar SMS');
     } finally {
       setLoading(false);
     }
@@ -1064,34 +1111,31 @@ function App() {
                             {saldoComposicao.map((c, i) => (
                               <div
                                 key={i}
-                                className={`flex items-center justify-between p-3 rounded-lg border ${
-                                  c.expirado ? 'bg-red-50 border-red-200' :
-                                  c.expirando ? 'bg-amber-50 border-amber-200' :
-                                  'bg-slate-50 border-slate-200'
-                                }`}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${c.expirado ? 'bg-red-50 border-red-200' :
+                                    c.expirando ? 'bg-amber-50 border-amber-200' :
+                                      'bg-slate-50 border-slate-200'
+                                  }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    c.expirado ? 'bg-red-100' :
-                                    c.expirando ? 'bg-amber-100' :
-                                    'bg-green-100'
-                                  }`}>
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${c.expirado ? 'bg-red-100' :
+                                      c.expirando ? 'bg-amber-100' :
+                                        'bg-green-100'
+                                    }`}>
                                     {c.expirado ? <AlertCircle size={16} className="text-red-600" /> :
-                                     c.expirando ? <Timer size={16} className="text-amber-600" /> :
-                                     <CheckCircle2 size={16} className="text-green-600" />}
+                                      c.expirando ? <Timer size={16} className="text-amber-600" /> :
+                                        <CheckCircle2 size={16} className="text-green-600" />}
                                   </div>
                                   <div>
                                     <p className="font-medium text-slate-700">
                                       {getNomeMes(c.mesReferencia)}/{c.anoReferencia}
                                     </p>
-                                    <p className={`text-xs ${
-                                      c.expirado ? 'text-red-600 font-bold' :
-                                      c.expirando ? 'text-amber-600 font-bold' :
-                                      'text-slate-500'
-                                    }`}>
+                                    <p className={`text-xs ${c.expirado ? 'text-red-600 font-bold' :
+                                        c.expirando ? 'text-amber-600 font-bold' :
+                                          'text-slate-500'
+                                      }`}>
                                       {c.expirado ? 'EXPIRADO!' :
-                                       c.expirando ? `Expira em ${c.mesesRestantes} meses` :
-                                       `${c.mesesRestantes} meses restantes`}
+                                        c.expirando ? `Expira em ${c.mesesRestantes} meses` :
+                                          `${c.mesesRestantes} meses restantes`}
                                     </p>
                                   </div>
                                 </div>
@@ -1750,11 +1794,10 @@ function App() {
           {/* Dashboard */}
           <button
             onClick={() => { setPaginaAtual('dashboard'); setVendoEmpresa(null); setMobileMenuOpen(false); }}
-            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} transition px-3 py-2.5 rounded-lg ${
-              paginaAtual === 'dashboard' && !vendoEmpresa
+            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} transition px-3 py-2.5 rounded-lg ${paginaAtual === 'dashboard' && !vendoEmpresa
                 ? 'bg-[#00A3E0] text-white'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
+              }`}
             title={sidebarCollapsed ? "Dashboard" : ""}
           >
             <Activity size={20} />
@@ -1765,11 +1808,10 @@ function App() {
           <div>
             <button
               onClick={() => setMenuEmpresasAberto(!menuEmpresasAberto)}
-              className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} transition px-3 py-2.5 rounded-lg ${
-                (paginaAtual === 'empresas' || paginaAtual === 'usinas') && !vendoEmpresa
+              className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} transition px-3 py-2.5 rounded-lg ${(paginaAtual === 'empresas' || paginaAtual === 'usinas') && !vendoEmpresa
                   ? 'bg-slate-800 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
+                }`}
               title={sidebarCollapsed ? "Empresas" : ""}
             >
               <span className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
@@ -1784,21 +1826,19 @@ function App() {
               <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-700 pl-4">
                 <button
                   onClick={() => { setPaginaAtual('empresas'); setVendoEmpresa(null); setMobileMenuOpen(false); }}
-                  className={`flex w-full items-center gap-3 transition px-3 py-2 rounded-lg text-sm ${
-                    paginaAtual === 'empresas' && !vendoEmpresa
+                  className={`flex w-full items-center gap-3 transition px-3 py-2 rounded-lg text-sm ${paginaAtual === 'empresas' && !vendoEmpresa
                       ? 'bg-[#00A3E0] text-white'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <Plug size={16} /> Gerenciar
                 </button>
                 <button
                   onClick={() => { setPaginaAtual('usinas'); setVendoEmpresa(null); setMobileMenuOpen(false); }}
-                  className={`flex w-full items-center gap-3 transition px-3 py-2 rounded-lg text-sm ${
-                    paginaAtual === 'usinas' && !vendoEmpresa
+                  className={`flex w-full items-center gap-3 transition px-3 py-2 rounded-lg text-sm ${paginaAtual === 'usinas' && !vendoEmpresa
                       ? 'bg-[#00A3E0] text-white'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   <Sun size={16} /> Usinas
                 </button>
@@ -1809,11 +1849,10 @@ function App() {
           {/* Gestores */}
           <button
             onClick={() => { setPaginaAtual('gestores'); setVendoEmpresa(null); setMobileMenuOpen(false); }}
-            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} transition px-3 py-2.5 rounded-lg ${
-              paginaAtual === 'gestores' && !vendoEmpresa
+            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} transition px-3 py-2.5 rounded-lg ${paginaAtual === 'gestores' && !vendoEmpresa
                 ? 'bg-[#00A3E0] text-white'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
+              }`}
             title={sidebarCollapsed ? "Gestores" : ""}
           >
             <UserCog size={20} />
@@ -1871,79 +1910,77 @@ function App() {
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-8 overflow-auto">
-        {vendoEmpresa ? (
-          <div className="animate-fade-in">
-            <button onClick={() => setVendoEmpresa(null)} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 font-medium"><ArrowLeft size={20} /> Voltar</button>
+          {vendoEmpresa ? (
+            <div className="animate-fade-in">
+              <button onClick={() => setVendoEmpresa(null)} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 font-medium"><ArrowLeft size={20} /> Voltar</button>
 
-            <header className="mb-8 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800">{vendoEmpresa.nome_empresa}</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-slate-500 text-sm">Painel de Controle</p>
-                  <button onClick={refreshDadosEmpresa} disabled={loading} className="text-[#00A3E0] hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition">
-                    <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-                  </button>
+              <header className="mb-8 flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-800">{vendoEmpresa.nome_empresa}</h1>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-slate-500 text-sm">Painel de Controle</p>
+                    <button onClick={refreshDadosEmpresa} disabled={loading} className="text-[#00A3E0] hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition">
+                      <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200">
-                <button onClick={() => setAbaAtiva('geral')} className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${abaAtiva === 'geral' ? 'bg-[#00A3E0] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><FileText size={16} /> Faturas</button>
-                <button onClick={carregarUsinas} className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${abaAtiva === 'usinas' ? 'bg-[#00A3E0] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Sun size={16} /> Usinas</button>
-              </div>
-            </header>
+                <div className="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200">
+                  <button onClick={() => setAbaAtiva('geral')} className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${abaAtiva === 'geral' ? 'bg-[#00A3E0] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><FileText size={16} /> Faturas</button>
+                  <button onClick={carregarUsinas} className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition ${abaAtiva === 'usinas' ? 'bg-[#00A3E0] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Sun size={16} /> Usinas</button>
+                </div>
+              </header>
 
-            {abaAtiva === 'geral' && (
-              <div className="space-y-6">
-                {ucsDoCliente.map(uc => {
-                  const isUcAtiva = uc.uc_ativa === true && uc.contrato_ativo === true;
-                  const enderecoCompleto = uc.numero_imovel && uc.bairro && uc.nome_municipio && uc.uf
-                    ? `${uc.endereco}, ${uc.numero_imovel}${uc.complemento ? ' - ' + uc.complemento : ''} - ${uc.bairro}, ${uc.nome_municipio}/${uc.uf}`
-                    : uc.endereco;
+              {abaAtiva === 'geral' && (
+                <div className="space-y-6">
+                  {ucsDoCliente.map(uc => {
+                    const isUcAtiva = uc.uc_ativa === true && uc.contrato_ativo === true;
+                    const enderecoCompleto = uc.numero_imovel && uc.bairro && uc.nome_municipio && uc.uf
+                      ? `${uc.endereco}, ${uc.numero_imovel}${uc.complemento ? ' - ' + uc.complemento : ''} - ${uc.bairro}, ${uc.nome_municipio}/${uc.uf}`
+                      : uc.endereco;
 
-                  return (
-                    <div key={uc.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${uc.is_geradora ? 'border-orange-200' : 'border-slate-200'} ${!isUcAtiva ? 'opacity-75' : ''}`}>
-                      <div className={`p-5 flex flex-wrap justify-between items-center gap-4 ${uc.is_geradora ? 'bg-orange-50/50' : 'bg-slate-50/50'}`}>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
-                            {uc.is_geradora ? <Sun className="text-orange-500" size={24} /> : <Home className="text-slate-400" size={20} />} UC: {uc.codigo_uc}
-                            {uc.is_geradora && <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-extrabold">USINA</span>}
-                            <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                              isUcAtiva
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}>
-                              {isUcAtiva ? 'Ativa' : 'Inativa'}
-                            </span>
-                          </h3>
-                          <p className="text-slate-500 text-sm ml-8">{enderecoCompleto}</p>
-                          {uc.nome_titular && <p className="text-slate-400 text-xs ml-8 mt-1">Titular: {uc.nome_titular}</p>}
+                    return (
+                      <div key={uc.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${uc.is_geradora ? 'border-orange-200' : 'border-slate-200'} ${!isUcAtiva ? 'opacity-75' : ''}`}>
+                        <div className={`p-5 flex flex-wrap justify-between items-center gap-4 ${uc.is_geradora ? 'bg-orange-50/50' : 'bg-slate-50/50'}`}>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
+                              {uc.is_geradora ? <Sun className="text-orange-500" size={24} /> : <Home className="text-slate-400" size={20} />} UC: {uc.codigo_uc}
+                              {uc.is_geradora && <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-extrabold">USINA</span>}
+                              <span className={`text-xs px-2 py-1 rounded font-semibold ${isUcAtiva
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                                }`}>
+                                {isUcAtiva ? 'Ativa' : 'Inativa'}
+                              </span>
+                            </h3>
+                            <p className="text-slate-500 text-sm ml-8">{enderecoCompleto}</p>
+                            {uc.nome_titular && <p className="text-slate-400 text-xs ml-8 mt-1">Titular: {uc.nome_titular}</p>}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {uc.is_geradora && <div className="flex items-center gap-1 text-orange-600 font-bold"><BatteryCharging size={18} /> {uc.saldo_acumulado} kWh</div>}
+                            <button
+                              onClick={() => toggleFaturas(uc.id)}
+                              disabled={!isUcAtiva}
+                              className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium ${isUcAtiva
+                                  ? 'hover:bg-slate-50 cursor-pointer'
+                                  : 'opacity-50 cursor-not-allowed'
+                                }`}
+                              title={!isUcAtiva ? 'UC inativa - faturas não disponíveis' : ''}
+                            >
+                              {expandedUcs[uc.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />} {expandedUcs[uc.id] ? 'Ocultar' : 'Ver Faturas'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          {uc.is_geradora && <div className="flex items-center gap-1 text-orange-600 font-bold"><BatteryCharging size={18} /> {uc.saldo_acumulado} kWh</div>}
-                          <button
-                            onClick={() => toggleFaturas(uc.id)}
-                            disabled={!isUcAtiva}
-                            className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium ${
-                              isUcAtiva
-                                ? 'hover:bg-slate-50 cursor-pointer'
-                                : 'opacity-50 cursor-not-allowed'
-                            }`}
-                            title={!isUcAtiva ? 'UC inativa - faturas não disponíveis' : ''}
-                          >
-                            {expandedUcs[uc.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />} {expandedUcs[uc.id] ? 'Ocultar' : 'Ver Faturas'}
-                          </button>
-                        </div>
+                        {renderTabelaFaturas(uc.id)}
                       </div>
-                      {renderTabelaFaturas(uc.id)}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
 
-            {abaAtiva === 'usinas' && (
-              <div className="space-y-8">
-                {usinasDoCliente.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-slate-500 border border-dashed border-slate-300">Nenhuma usina identificada.</div>}
-                {usinasDoCliente.map(usina => (
+              {abaAtiva === 'usinas' && (
+                <div className="space-y-8">
+                  {usinasDoCliente.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-slate-500 border border-dashed border-slate-300">Nenhuma usina identificada.</div>}
+                  {usinasDoCliente.map(usina => (
                     <div key={usina.id} className="bg-white rounded-xl shadow-md border border-orange-100 overflow-hidden">
                       <div className="bg-gradient-to-r from-orange-50 to-white p-6 border-b border-orange-100">
                         <div className="flex justify-between items-start">
@@ -1964,28 +2001,28 @@ function App() {
                       <div className="p-6 bg-slate-50">
                         <h4 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2"><Share2 size={16} /> Rateio de Créditos</h4>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {usina.beneficiarias?.map(ben => (
-                          <div key={ben.id} className="bg-white p-4 rounded-lg border border-slate-200 flex items-center justify-between">
-                            <div>
-                              <span className="font-bold text-slate-700">UC {ben.codigo_uc}</span>
-                              <p className="text-xs text-slate-500">{ben.endereco}</p>
+                          {usina.beneficiarias?.map(ben => (
+                            <div key={ben.id} className="bg-white p-4 rounded-lg border border-slate-200 flex items-center justify-between">
+                              <div>
+                                <span className="font-bold text-slate-700">UC {ben.codigo_uc}</span>
+                                <p className="text-xs text-slate-500">{ben.endereco}</p>
+                              </div>
+                              <span className="text-2xl font-bold text-slate-700">{ben.percentual_rateio}%</span>
                             </div>
-                            <span className="text-2xl font-bold text-slate-700">{ben.percentual_rateio}%</span>
-                          </div>
-                        ))}
-                        </div>
+                          ))}
                         </div>
                       </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          paginaAtual === 'dashboard' ? renderDashboard() :
-          paginaAtual === 'usinas' ? renderUsinas() :
-          paginaAtual === 'gestores' ? <GestoresPage empresas={empresas} /> :
-          renderEmpresas()
-        )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            paginaAtual === 'dashboard' ? renderDashboard() :
+              paginaAtual === 'usinas' ? renderUsinas() :
+                paginaAtual === 'gestores' ? <GestoresPage empresas={empresas} /> :
+                  renderEmpresas()
+          )}
         </main>
       </div>
 
@@ -2023,6 +2060,50 @@ function App() {
                 {downloadingId === faturaDetalhe.id ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />} Baixar PDF
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seleção de Telefone */}
+      {phoneSelectModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Selecione o Telefone</h2>
+              <button onClick={() => { setPhoneSelectModalOpen(false); setSelectedPhone(null); }} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            </div>
+            <p className="text-slate-500 text-sm mb-4">Escolha o telefone para receber o código SMS</p>
+
+            <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto">
+              {listaTelefone.map((phone, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedPhone(phone.celular)}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${selectedPhone === phone.celular
+                      ? 'border-[#00A3E0] bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-slate-900">{phone.celular}</div>
+                      <div className="text-sm text-slate-500">UC: {phone.cdc}-{phone.digitoVerificador}</div>
+                    </div>
+                    {selectedPhone === phone.celular && (
+                      <div className="text-[#00A3E0]">✓</div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleSelectPhone}
+              disabled={!selectedPhone || loading}
+              className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 size={20} className="animate-spin" /> : 'Enviar SMS'}
+            </button>
           </div>
         </div>
       )}
