@@ -227,3 +227,23 @@ class EnergisaGatewayClient:
         if resp.status_code == 200:
             return resp.json()
         raise Exception(f"Erro ao validar autorizacao: {resp.text}")
+
+    def get_uc_info(self, cpf, uc_data):
+        """
+        Obtém informações detalhadas de uma UC específica.
+        Retorna dados completos incluindo cpfCnpj do titular.
+        """
+        payload = {
+            "cpf": cpf,
+            "cdc": uc_data['cdc'],
+            "codigoEmpresaWeb": uc_data.get('empresa_web', 6),
+            "digitoVerificadorCdc": self._get_digito(uc_data)
+        }
+        resp = requests.post(
+            f"{self.base_url}/ucs/info",
+            json=payload,
+            headers=self._get_headers()
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        return None

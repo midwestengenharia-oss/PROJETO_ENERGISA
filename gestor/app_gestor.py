@@ -117,7 +117,33 @@ def listar_ucs_cliente(
         ).first()
         if not cliente:
             raise HTTPException(404, "Cliente nao encontrado")
-        return cliente.unidades
+
+        # Retorna as UCs com o CPF da empresa para comparação
+        ucs_com_proprietario = []
+        for uc in cliente.unidades:
+            uc_dict = {
+                "id": uc.id,
+                "cdc": uc.cdc,
+                "digito_verificador": uc.digito_verificador,
+                "empresa_web": uc.empresa_web,
+                "nome_titular": uc.nome_titular,
+                "endereco": uc.endereco,
+                "numero_imovel": uc.numero_imovel,
+                "complemento": uc.complemento,
+                "bairro": uc.bairro,
+                "nome_municipio": uc.nome_municipio,
+                "uf": uc.uf,
+                "uc_ativa": uc.uc_ativa,
+                "contrato_ativo": uc.contrato_ativo,
+                "usuarioGerenciandoCdcs": uc.usuario_gerenciando_cdcs,
+                # Adiciona o CPF da empresa para comparação
+                "cpf_empresa": cliente.responsavel_cpf,
+                # Adiciona o cpfCnpj da UC se tiver
+                "cpf_cnpj_uc": uc.cpf_cnpj if hasattr(uc, 'cpf_cnpj') else None
+            }
+            ucs_com_proprietario.append(uc_dict)
+
+        return ucs_com_proprietario
     except SQLAlchemyError as e:
         raise HTTPException(500, f"Erro ao consultar banco de dados: {str(e)}")
 
@@ -575,6 +601,21 @@ def sincronizar_dados_cliente(cliente_id: int):
                 except Exception as e:
                     print(f"      Erro dados GD (mas vamos continuar): {e}")
 
+            # 3.5. Buscar CPF/CNPJ da UC (informação detalhada)
+            cpf_cnpj_uc = None
+            try:
+                uc_info = gateway.get_uc_info(cliente.responsavel_cpf, {
+                    "cdc": cdc_real,
+                    "empresa_web": uc_data.get('codigoEmpresaWeb', 6),
+                    "digitoVerificadorCdc": digito_real
+                })
+                if uc_info and 'infos' in uc_info:
+                    dados_uc = uc_info['infos'].get('dadosUc', {})
+                    cpf_cnpj_uc = str(dados_uc.get('cpfCnpj', ''))
+                    print(f"      CPF/CNPJ da UC {cdc_real}: {cpf_cnpj_uc}")
+            except Exception as e:
+                print(f"      Erro ao buscar CPF/CNPJ da UC (continuando): {e}")
+
             # 4. Salvar UC Principal (USINA ou NORMAL)
             uc_local = db.query(UnidadeConsumidora).filter_by(
                 cliente_id=cliente.id,
@@ -588,6 +629,7 @@ def sincronizar_dados_cliente(cliente_id: int):
                     cdc=cdc_real,
                     digito_verificador=digito_real,
                     empresa_web=uc_data.get('codigoEmpresaWeb', 6),
+                    cpf_cnpj=cpf_cnpj_uc,
                     endereco=endereco_final,
                     nome_titular=uc_data.get('nomeTitular'),
                     numero_imovel=uc_data.get('numeroImovel'),
@@ -605,6 +647,7 @@ def sincronizar_dados_cliente(cliente_id: int):
                 )
                 db.add(uc_local)
             else:
+                uc_local.cpf_cnpj = cpf_cnpj_uc
                 uc_local.endereco = endereco_final
                 uc_local.nome_titular = uc_data.get('nomeTitular')
                 uc_local.numero_imovel = uc_data.get('numeroImovel')

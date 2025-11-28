@@ -67,6 +67,7 @@ class UnidadeConsumidora(Base):
     cdc = Column(Integer)
     digito_verificador = Column(Integer)
     empresa_web = Column(Integer, default=6)
+    cpf_cnpj = Column(String, nullable=True)  # CPF/CNPJ do titular da UC
     endereco = Column(String)
     nome_titular = Column(String, nullable=True)
 

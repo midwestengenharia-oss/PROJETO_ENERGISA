@@ -4,7 +4,8 @@ import { useToast } from '../components/Toast';
 import { useTheme } from '../contexts/ThemeContext';
 import {
     UserPlus, Clock, CheckCircle2, XCircle, AlertCircle, Loader2,
-    ChevronDown, ChevronUp, Building2, MapPin, Send, Trash2, Key
+    ChevronDown, ChevronUp, Building2, MapPin, Send, Trash2, Key,
+    Users, Shield, UserCheck, TrendingUp, Bell
 } from 'lucide-react';
 
 interface UCComPropriedade extends UnidadeConsumidora {
@@ -27,7 +28,9 @@ export function GestoresPage({ empresas }: Props) {
     const [solicitacoesPendentes, setSolicitacoesPendentes] = useState<SolicitacaoGestor[]>([]);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
         'adicionar': true,
-        'pendentes': true
+        'pendentes': true,
+        'proprietario': true,
+        'gestor': true
     });
 
     // Modal de adicionar gestor
@@ -63,12 +66,25 @@ export function GestoresPage({ empresas }: Props) {
                     const ucsEmpresa = res.data || [];
 
                     for (const uc of ucsEmpresa) {
-                        // Se tem usuarioGerenciandoCdcs, usuario e PROPRIETARIO
-                        // Se NAO tem, usuario e apenas GESTOR
-                        const isProprietario = uc.usuarioGerenciandoCdcs !== undefined && uc.usuarioGerenciandoCdcs !== null;
+                        // Lógica correta:
+                        // Proprietário: quando o CPF da empresa é igual ao CPF/CNPJ da UC
+                        // Gestor: quando o CPF da empresa é diferente do CPF/CNPJ da UC
 
-                        // Debug: verificar o valor de ucAtiva
-                        console.log(`UC ${uc.cdc} - ucAtiva:`, uc.ucAtiva, typeof uc.ucAtiva);
+                        // Remove caracteres não numéricos para comparação
+                        const cpfEmpresa = uc.cpf_empresa?.toString().replace(/\D/g, '');
+                        const cpfCnpjUC = uc.cpf_cnpj_uc?.toString().replace(/\D/g, '');
+
+                        // Se temos o cpf_cnpj_uc, usamos para comparação
+                        // Caso contrário, usa a lógica antiga (usuarioGerenciandoCdcs)
+                        let isProprietario;
+                        if (cpfCnpjUC) {
+                            isProprietario = cpfEmpresa === cpfCnpjUC;
+                        } else {
+                            // Fallback: se não tem cpf_cnpj_uc, usa a lógica antiga
+                            isProprietario = uc.usuarioGerenciandoCdcs !== undefined && uc.usuarioGerenciandoCdcs !== null;
+                        }
+
+                        console.log(`UC ${uc.cdc} - CPF Empresa: ${cpfEmpresa}, CPF UC: ${cpfCnpjUC}, Proprietário: ${isProprietario}`);
 
                         todasUcs.push({
                             ...uc,
@@ -299,6 +315,18 @@ export function GestoresPage({ empresas }: Props) {
     const btnPrimaryClass = 'px-4 py-2 bg-[#00A3E0] text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50';
     const btnSecondaryClass = `px-4 py-2 rounded-lg border ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : 'border-slate-300 text-slate-600 hover:bg-slate-100'} transition-colors`;
 
+    // Calcular métricas
+    const totalUcs = ucs.length;
+    const ucsProprietario = ucs.filter(uc => uc.is_proprietario).length;
+    const ucsGestor = ucs.filter(uc => !uc.is_proprietario).length;
+    const totalGestoresAtivos = ucs
+        .filter(uc => uc.is_proprietario && uc.usuarioGerenciandoCdcs)
+        .reduce((total, uc) => total + (uc.usuarioGerenciandoCdcs?.length || 0), 0);
+    const autorizacoesExpirando = solicitacoesPendentes.filter(sol => {
+        const dias = diasRestantes(sol.expira_em);
+        return dias !== null && dias <= 2 && dias > 0;
+    }).length;
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -317,6 +345,94 @@ export function GestoresPage({ empresas }: Props) {
                 <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                     Gerencie quem pode acessar suas unidades consumidoras
                 </p>
+            </div>
+
+            {/* Dashboard de Métricas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Total de UCs */}
+                <div className={`${cardClass} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                Total de UCs
+                            </p>
+                            <p className={`text-3xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {totalUcs}
+                            </p>
+                        </div>
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                            <Building2 className="text-[#00A3E0]" size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* UCs Proprietário */}
+                <div className={`${cardClass} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                Proprietário
+                            </p>
+                            <p className={`text-3xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {ucsProprietario}
+                            </p>
+                        </div>
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-green-500/20' : 'bg-green-100'}`}>
+                            <Shield className="text-green-600" size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* UCs Gestor */}
+                <div className={`${cardClass} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                Gestor
+                            </p>
+                            <p className={`text-3xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {ucsGestor}
+                            </p>
+                        </div>
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
+                            <UserCheck className="text-purple-600" size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Gestores Ativos */}
+                <div className={`${cardClass} p-5`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                Gestores Ativos
+                            </p>
+                            <p className={`text-3xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {totalGestoresAtivos}
+                            </p>
+                        </div>
+                        <div className={`p-3 rounded-lg ${isDark ? 'bg-cyan-500/20' : 'bg-cyan-100'}`}>
+                            <Users className="text-cyan-600" size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Alertas */}
+                <div className={`${cardClass} p-5 ${autorizacoesExpirando > 0 ? 'ring-2 ring-amber-500' : ''}`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                Expirando
+                            </p>
+                            <p className={`text-3xl font-bold mt-1 ${autorizacoesExpirando > 0 ? 'text-amber-500' : isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {autorizacoesExpirando}
+                            </p>
+                        </div>
+                        <div className={`p-3 rounded-lg ${autorizacoesExpirando > 0 ? 'bg-amber-500/20' : isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                            <Bell className={autorizacoesExpirando > 0 ? 'text-amber-500' : isDark ? 'text-slate-500' : 'text-slate-400'} size={24} />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Secao: Solicitacoes Pendentes */}
@@ -526,6 +642,176 @@ export function GestoresPage({ empresas }: Props) {
                                             <UserPlus size={16} />
                                             {uc.is_proprietario ? 'Adicionar Gestor' : 'Solicitar Acesso'}
                                         </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Secao: Minhas UCs como Proprietário */}
+            <div className={cardClass}>
+                <div className={headerClass} onClick={() => toggleSection('proprietario')}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                            <Shield size={20} />
+                        </div>
+                        <div>
+                            <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                Minhas UCs (Proprietário)
+                            </h2>
+                            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                {ucsProprietario} {ucsProprietario === 1 ? 'unidade' : 'unidades'} onde você é proprietário
+                            </p>
+                        </div>
+                    </div>
+                    {expandedSections['proprietario'] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+
+                {expandedSections['proprietario'] && (
+                    <div className="p-4 pt-0">
+                        {ucs.filter(uc => uc.is_proprietario).length === 0 ? (
+                            <div className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                <Shield size={48} className="mx-auto mb-4 opacity-50" />
+                                <p>Você não é proprietário de nenhuma UC</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                {ucs.filter(uc => uc.is_proprietario).map(uc => (
+                                    <div
+                                        key={uc.id}
+                                        className={`p-4 rounded-lg border ${isDark
+                                            ? 'bg-slate-700/30 border-slate-600'
+                                            : 'bg-white border-slate-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-1 flex-1 min-w-0">
+                                                <div className={`font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                    {uc.empresa_nome}
+                                                </div>
+                                                <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                    CDC: {uc.cdc}-{uc.digito_verificador}
+                                                </div>
+                                                <div className={`text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    {uc.numero_imovel && uc.bairro && uc.nome_municipio && uc.uf
+                                                        ? `${uc.endereco}, ${uc.numero_imovel}${uc.complemento ? ' - ' + uc.complemento : ''} - ${uc.bairro}, ${uc.nome_municipio}/${uc.uf}`
+                                                        : uc.endereco
+                                                    }
+                                                </div>
+                                                {uc.nome_titular && (
+                                                    <div className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                        Titular: {uc.nome_titular}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 items-end">
+                                                <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                    (uc.uc_ativa === true && uc.contrato_ativo === true)
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {(uc.uc_ativa === true && uc.contrato_ativo === true) ? 'Ativa' : 'Inativa'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {uc.usuarioGerenciandoCdcs && uc.usuarioGerenciandoCdcs.length > 0 && (
+                                            <div className={`mt-3 pt-3 border-t ${isDark ? 'border-slate-600' : 'border-slate-200'}`}>
+                                                <div className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                    Gestores ({uc.usuarioGerenciandoCdcs.length}):
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {uc.usuarioGerenciandoCdcs.map((gestor, idx) => (
+                                                        <div key={idx} className={`text-xs flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                            <UserCheck size={12} className="text-cyan-600" />
+                                                            <span className="truncate">{gestor.nome}</span>
+                                                            {gestor.statusAtivo && (
+                                                                <span className="ml-auto px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-semibold">Ativo</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Secao: UCs onde sou Gestor */}
+            <div className={cardClass}>
+                <div className={headerClass} onClick={() => toggleSection('gestor')}>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                            <UserCheck size={20} />
+                        </div>
+                        <div>
+                            <h2 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                UCs onde sou Gestor
+                            </h2>
+                            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                {ucsGestor} {ucsGestor === 1 ? 'unidade' : 'unidades'} que você gerencia
+                            </p>
+                        </div>
+                    </div>
+                    {expandedSections['gestor'] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+
+                {expandedSections['gestor'] && (
+                    <div className="p-4 pt-0">
+                        {ucs.filter(uc => !uc.is_proprietario).length === 0 ? (
+                            <div className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                <UserCheck size={48} className="mx-auto mb-4 opacity-50" />
+                                <p>Você não é gestor de nenhuma UC</p>
+                                <p className="text-sm mt-1">Solicite acesso a uma UC acima</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                {ucs.filter(uc => !uc.is_proprietario).map(uc => (
+                                    <div
+                                        key={uc.id}
+                                        className={`p-4 rounded-lg border ${isDark
+                                            ? 'bg-slate-700/30 border-slate-600'
+                                            : 'bg-white border-slate-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-1 flex-1 min-w-0">
+                                                <div className={`font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                    {uc.empresa_nome}
+                                                </div>
+                                                <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                    CDC: {uc.cdc}-{uc.digito_verificador}
+                                                </div>
+                                                <div className={`text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    {uc.numero_imovel && uc.bairro && uc.nome_municipio && uc.uf
+                                                        ? `${uc.endereco}, ${uc.numero_imovel}${uc.complemento ? ' - ' + uc.complemento : ''} - ${uc.bairro}, ${uc.nome_municipio}/${uc.uf}`
+                                                        : uc.endereco
+                                                    }
+                                                </div>
+                                                {uc.nome_titular && (
+                                                    <div className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                        Proprietário: {uc.nome_titular}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 items-end">
+                                                <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                    (uc.uc_ativa === true && uc.contrato_ativo === true)
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {(uc.uc_ativa === true && uc.contrato_ativo === true) ? 'Ativa' : 'Inativa'}
+                                                </div>
+                                                <div className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-700">
+                                                    Gestor
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
