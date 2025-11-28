@@ -94,6 +94,17 @@ class AutorizacaoPendenteRequest(BaseModel):
     unidadeConsumidora: int # Corresponde ao parâmetro da URL (pode ser o CDC)
     codigo: int # O código da autorização (ex: 5002)
 
+class LoginStartRequest(BaseModel):
+    cpf: str
+
+class LoginSelectRequest(BaseModel):
+    transaction_id: str
+    opcao_selecionada: str # O número do celular (ex: "66*****7647")
+
+class LoginFinishRequest(BaseModel):
+    transaction_id: str
+    sms_code: str
+
 # --- FUNÇÕES AUXILIARES DE AUTH ---
 
 def create_access_token(data: dict):
@@ -166,31 +177,30 @@ def generate_token(req: ClientLogin):
 # --- ROTAS DA ENERGISA (AGORA PROTEGIDAS) ---
 # Note o: dependencies=[Depends(verify_token)]
 
-def _login_worker_thread(cpf: str, final_telefone: str, cmd_queue: queue.Queue, result_queue: queue.Queue):
+
+# [gateway/main.py]
+def _login_worker_thread(cpf: str, cmd_queue: queue.Queue, result_queue: queue.Queue):
     """
-    Thread worker que executa start_login e aguarda comando para finish_login.
-    Mantem o Playwright vivo na mesma thread entre start e finish.
+    Worker Completo: Akamai Bypass -> Extração Híbrida -> Login -> Captura de Tokens (Cookies + LocalStorage)
     """
     from playwright.sync_api import sync_playwright
     from session_manager import SessionManager
+    import random
+    import json
+    import time
 
     playwright_instance = None
     browser = None
     page = None
 
     try:
-        # ========== START LOGIN (codigo original do service.py) ==========
-        print(f"🚀 Login: CPF {cpf} | Tel Final: {final_telefone}")
+        print(f"🚀 [Worker] Iniciando navegador para CPF {cpf}...")
 
         playwright_instance = sync_playwright().start()
-
+        
         args = [
-            "--no-sandbox",
-            "--disable-infobars",
-            "--start-maximized",
-            "--disable-blink-features=AutomationControlled",
-            "--disable-dev-shm-usage",
-            "--disable-gpu"
+            "--no-sandbox", "--disable-infobars", "--start-maximized",
+            "--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage", "--disable-gpu"
         ]
 
         browser = playwright_instance.chromium.launch(
@@ -198,254 +208,269 @@ def _login_worker_thread(cpf: str, final_telefone: str, cmd_queue: queue.Queue, 
             args=args,
             ignore_default_args=["--enable-automation"]
         )
-
-        context = browser.new_context(
-            viewport={'width': 1280, 'height': 1024},
-            locale='pt-BR',
-            timezone_id='America/Sao_Paulo',
-            user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        )
-
-        init_script = """
+        
+        context = browser.new_context(viewport={'width': 1280, 'height': 1024}, locale='pt-BR')
+        
+        context.add_init_script("""
         () => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             window.chrome = { runtime: {} };
             Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-            const originalQuery = window.navigator.permissions.query;
-            window.navigator.permissions.query = (parameters) => (
-                parameters.name === 'notifications' ?
-                Promise.resolve({ state: Notification.permission }) :
-                originalQuery(parameters)
-            );
         }
-        """
-        context.add_init_script(init_script)
-
+        """)
+        
         page = context.new_page()
 
-        print("   🌐 Acessando página de login (Modo Visual/Xvfb)...")
-
-        try:
-            page.goto("https://www.google.com.br", timeout=10000)
-        except:
-            pass
-
+        print("   🌐 Acessando página de login...")
         page.goto("https://servicos.energisa.com.br/login", wait_until="domcontentloaded", timeout=60000)
 
-        time.sleep(5)
-
-        title = page.title()
-        print(f"   🔎 Título da página: {title}")
-
-        if "Access Denied" in title or "Bloqueio" in title:
-            try:
-                page.screenshot(path="sessions/access_denied.png")
-            except:
-                pass
-            raise Exception(f"Bloqueio WAF detectado (Access Denied). Título: {title}")
-
-        try:
-            page.wait_for_selector('input[name="cpf"]', state="visible", timeout=20000)
-        except:
-            if page.locator("iframe").count() > 0:
-                raise Exception("Captcha detectado na tela.")
-            try:
-                page.screenshot(path="sessions/erro_login_no_input.png")
-            except:
-                pass
-            raise Exception(f"Campo CPF não carregou. Título: {title}")
-
-        print("   ✍️ Preenchendo CPF...")
-        page.click('input[name="cpf"]')
-        for char in cpf:
-            page.keyboard.type(char, delay=150)
-
-        time.sleep(1)
-        page.click('button:has-text("ENTRAR"), button:has-text("Entrar")')
-
-        print("   📞 Selecionando telefone...")
-        page.wait_for_selector('text=/contato|telefone|sms/i', timeout=30000)
-        time.sleep(2)
-
-        found = False
-        for sel in [f'label:has-text("{final_telefone}")', f'div:has-text("{final_telefone}")', f'text={final_telefone}']:
-            if page.is_visible(sel):
-                page.click(sel)
-                found = True
+        # --- VALIDAÇÃO AKAMAI ---
+        print("   🛡️ Aguardando validação de segurança (troca de _abck)...")
+        start_time = time.time()
+        validated = False
+        
+        while time.time() - start_time < 20:
+            cookies = context.cookies()
+            abck = next((c['value'] for c in cookies if c['name'] == '_abck'), None)
+            
+            if abck and "~0~" in abck:
+                print(f"   ✅ Cookie de segurança validado! (_abck contém ~0~)")
+                validated = True
                 break
+            
+            x, y = random.randint(100, 800), random.randint(100, 600)
+            page.mouse.move(x, y, steps=10)
+            if random.random() > 0.8: page.mouse.click(x, y)
+            time.sleep(1.0)
 
-        if not found:
-            if page.is_visible('label'):
-                print("   ⚠️ Telefone exato não achado, clicando no primeiro disponível...")
-                page.click('label')
-            else:
-                raise Exception("Opção de telefone não encontrada")
+        # --- PREENCHIMENTO ---
+        if page.is_visible('input[name="cpf"]'):
+            page.click('input[name="cpf"]')
+            for char in cpf:
+                page.keyboard.type(char, delay=random.randint(50, 150))
+        else:
+            raise Exception("Campo CPF não encontrado.")
 
-        time.sleep(1)
-        page.click('button:has-text("AVANÇAR")')
+        # --- INTERCEPTAÇÃO ---
+        print("   👀 [Worker] Aguardando JSON de telefones...")
+        
+        with page.expect_response(lambda response: "selecionar-numero.json" in response.url and response.status == 200, timeout=30000) as response_info:
+            time.sleep(1)
+            page.click('button:has-text("ENTRAR"), button:has-text("Entrar")')
+        
+        response = response_info.value
+        json_data = response.json()
+        
+        # --- EXTRAÇÃO DINÂMICA ---
+        telefones = []
+        try:
+            data_obj = json_data.get("pageProps", {}).get("data", {})
+            telefones = data_obj.get("listaTelefone", [])
+            
+            if not telefones:
+                dados_user = data_obj.get("dadosUsuario", {})
+                celular_unico = dados_user.get("celular")
+                if celular_unico:
+                    telefones.append({"celular": celular_unico, "cdc": 0, "posicao": 1})
+
+        except Exception as e:
+            print(f"   ❌ Erro extração telefones: {e}")
 
         transaction_id = f"{cpf}_{int(time.time())}"
 
-        # Retorna sucesso do start_login
         result_queue.put({
             "success": True,
-            "result": {"transaction_id": transaction_id, "message": "SMS enviado (Modo Visual)"}
+            "phase": "selection_pending",
+            "transaction_id": transaction_id,
+            "listaTelefone": telefones,
+            "full_data": json_data
         })
 
-        # ========== AGUARDA COMANDO FINISH ==========
+        # --- FASE 2: SELEÇÃO ---
+        print("   ⏸️ [Worker] Aguardando escolha do telefone...")
+        cmd = cmd_queue.get(timeout=300)
+        if cmd.get("action") != "select_phone": raise Exception("Comando inválido")
+
+        telefone_raw = cmd.get("telefone")
+        tel_clean = telefone_raw.strip()[-4:] 
+        
+        print(f"   📞 [Worker] Buscando opção... {tel_clean}")
+
+        page.wait_for_selector('text=/contato|telefone|sms/i', timeout=30000)
+        
+        clicked = False
         try:
-            cmd = cmd_queue.get(timeout=300)  # Timeout 5 minutos
-        except queue.Empty:
-            raise Exception("Timeout aguardando código SMS")
+            elements = page.get_by_text(tel_clean).all()
+            for el in elements:
+                if el.is_visible():
+                    el.click()
+                    clicked = True
+                    break
+        except: pass
+        
+        if not clicked:
+            if page.is_visible('label'): page.click('label')
+            elif page.is_visible('input[type="radio"]'): page.click('input[type="radio"]')
 
-        if cmd.get("action") != "finish":
-            raise Exception("Comando inválido")
-
-        sms_code = cmd.get("sms_code")
-
-        # ========== FINISH LOGIN (codigo original do service.py) ==========
-        try:
-            if page.is_visible('input[type="tel"]'):
-                page.click('input[type="tel"]')
-            elif page.is_visible('input[type="number"]'):
-                page.click('input[type="number"]')
-            else:
-                page.mouse.click(640, 512)
-        except:
-            pass
-
-        for d in sms_code:
-            page.keyboard.type(d, delay=150)
         time.sleep(1)
+        if page.is_visible('button:has-text("AVANÇAR")'): page.click('button:has-text("AVANÇAR")')
+        else: page.evaluate("() => { const b = Array.from(document.querySelectorAll('button')).find(x => x.innerText.includes('AVANÇAR')); if(b) b.click() }")
+        
+        result_queue.put({"success": True, "phase": "sms_sent", "message": "SMS Enviado"})
 
-        if page.is_visible('button:has-text("AVANÇAR")'):
-            page.click('button:has-text("AVANÇAR")')
-        else:
-            page.evaluate("() => { const b = Array.from(document.querySelectorAll('button')).find(x => x.innerText.includes('AVANÇAR')); if(b) b.click() }")
+        # --- FASE 3: FINISH SMS ---
+        cmd = cmd_queue.get(timeout=300)
+        if cmd.get("action") != "finish_sms": raise Exception("Comando inválido")
+        
+        sms = cmd.get("sms_code")
+        print(f"   ⌨️ [Worker] Digitando SMS: {sms}")
+        
+        if page.is_visible('input'): page.click('input')
+        page.keyboard.type(sms, delay=100)
+        time.sleep(0.5)
+        page.click('button:has-text("AVANÇAR")')
 
-        print("   ⏳ Aguardando tokens...")
+        print("   ⏳ Aguardando autenticação...")
+        try: page.wait_for_url(lambda u: "listagem-ucs" in u or "home" in u, timeout=25000)
+        except: pass
+        
+        # === MUDANÇA IMPORTANTE: CAPTURA COMPLETA DE TOKENS ===
+        final_cookies = {c['name']: c['value'] for c in page.context.cookies()}
+        
+        print("   📥 Extraindo tokens do LocalStorage e Cookies...")
         try:
-            page.wait_for_url(lambda u: "listagem-ucs" in u or "home" in u, timeout=25000)
-        except:
-            pass
+            # Script para pegar tokens que o React/Next.js guarda no navegador
+            ls_data = page.evaluate("""() => {
+                return {
+                    accessTokenEnergisa: localStorage.getItem('accessTokenEnergisa') || localStorage.getItem('token'),
+                    udk: localStorage.getItem('udk'),
+                    rtk: localStorage.getItem('rtk'),
+                    refreshToken: localStorage.getItem('refreshToken')
+                }
+            }""")
+            
+            # Adiciona os tokens do LocalStorage ao dicionário de cookies
+            # Isso permite que o 'requests' no EnergisaService use eles como se fossem cookies
+            if ls_data:
+                for k, v in ls_data.items():
+                    if v: 
+                        final_cookies[k] = v
+                        print(f"      + Token encontrado: {k}")
+                        
+        except Exception as e:
+            print(f"   ⚠️ Erro ao ler LocalStorage: {e}")
 
-        # Extrai tokens
-        final_cookies = {}
-        for _ in range(10):
-            cookies = page.context.cookies()
-            for c in cookies:
-                final_cookies[c['name']] = c['value']
-
-            try:
-                ls_data = page.evaluate("""() => {
-                    return {
-                        accessToken: localStorage.getItem('accessTokenEnergisa') || localStorage.getItem('token'),
-                        udk: localStorage.getItem('udk'),
-                        rtk: localStorage.getItem('rtk')
-                    }
-                }""")
-                if ls_data.get('accessToken'):
-                    final_cookies['accessTokenEnergisa'] = ls_data['accessToken']
-                if ls_data.get('udk'):
-                    final_cookies['udk'] = ls_data['udk']
-                if ls_data.get('rtk'):
-                    final_cookies['rtk'] = ls_data['rtk']
-            except:
-                pass
-
-            if 'rtk' in final_cookies or 'accessTokenEnergisa' in final_cookies:
-                break
-            time.sleep(1)
-
-        if 'rtk' not in final_cookies and 'accessTokenEnergisa' not in final_cookies:
-            raise Exception("Falha ao capturar tokens")
-
+        # Salva a sessão atualizada com TUDO
         SessionManager.save_session(cpf, final_cookies)
-
-        result_queue.put({
-            "success": True,
-            "result": {"status": "success", "message": "Login OK", "tokens": list(final_cookies.keys())}
-        })
+        print("   💾 Sessão salva com sucesso!")
+        
+        result_queue.put({"success": True, "tokens": list(final_cookies.keys()), "message": "Login OK"})
 
     except Exception as e:
+        print(f"❌ [Worker Error] {e}")
         result_queue.put({"success": False, "error": str(e)})
     finally:
-        if browser:
-            try:
-                browser.close()
-            except:
-                pass
-        if playwright_instance:
-            try:
-                playwright_instance.stop()
-            except:
-                pass
+        if browser: browser.close()
+        if playwright_instance: playwright_instance.stop()
 
 
-@app.post("/auth/login/start", dependencies=[Depends(verify_token)])
+
+
+
+@app.post("/auth/login/start")
 def login_start(req: LoginStartRequest):
     """
-    Inicia o login (envia SMS).
-    Cria uma thread dedicada que fica viva ate o finish_login.
+    Inicia o navegador e retorna a lista de telefones interceptada.
     """
     cmd_q = queue.Queue()
     result_q = queue.Queue()
+    
+    cpf_clean = req.cpf.replace(".", "").replace("-", "")
 
-    # Inicia thread worker
+    # Inicia a thread
     thread = threading.Thread(
         target=_login_worker_thread,
-        args=(req.cpf.replace(".", "").replace("-", ""), req.final_telefone, cmd_q, result_q),
+        args=(cpf_clean, cmd_q, result_q),
         daemon=True
     )
     thread.start()
 
-    # Aguarda resultado do start_login
+    # Aguarda o JSON (Fase 1)
     try:
-        result = result_q.get(timeout=120)  # 2 minutos timeout
+        result = result_q.get(timeout=60)
     except queue.Empty:
-        raise HTTPException(500, "Timeout no login")
+        raise HTTPException(500, "Timeout ao carregar opções de login")
 
     if not result.get("success"):
         raise HTTPException(500, result.get("error", "Erro desconhecido"))
 
-    # Guarda referencia da sessao
-    transaction_id = result["result"]["transaction_id"]
+    transaction_id = result["transaction_id"]
+
+    # Salva sessão
     _login_sessions[transaction_id] = {
         "thread": thread,
         "cmd_queue": cmd_q,
         "result_queue": result_q
     }
 
-    return result["result"]
+    # Retorna EXATAMENTE o que você pediu
+    return {
+        "transaction_id": transaction_id,
+        "listaTelefone": result.get("listaTelefone", [])
+    }
 
-
-@app.post("/auth/login/finish", dependencies=[Depends(verify_token)])
-def login_finish(req: LoginFinishRequest):
+@app.post("/auth/login/select-option")
+def login_select_option(req: LoginSelectRequest):
     """
-    Finaliza o login com codigo SMS.
-    Envia comando para a thread que esta aguardando.
+    Recebe o transaction_id e o telefone escolhido.
+    Avisa a thread para clicar e enviar o SMS.
     """
-    session = _login_sessions.pop(req.transaction_id, None)
-
+    session = _login_sessions.get(req.transaction_id)
     if not session:
-        raise HTTPException(400, "Transação expirada ou não encontrada")
+        raise HTTPException(400, "Sessão não encontrada")
 
-    # Envia comando finish para a thread
+    # Envia comando para a thread (Fase 2)
     session["cmd_queue"].put({
-        "action": "finish",
-        "sms_code": req.sms_code
+        "action": "select_phone",
+        "telefone": req.opcao_selecionada
     })
 
-    # Aguarda resultado do finish_login
+    # Aguarda confirmação de envio do SMS
     try:
         result = session["result_queue"].get(timeout=60)
     except queue.Empty:
-        raise HTTPException(500, "Timeout finalizando login")
+        raise HTTPException(500, "Timeout ao enviar SMS")
 
     if not result.get("success"):
-        raise HTTPException(400, result.get("error", "Erro desconhecido"))
+        raise HTTPException(500, result.get("error"))
 
-    return result["result"]
+    return {"message": "SMS enviado com sucesso"}
+
+
+@app.post("/auth/login/finish")
+def login_finish(req: LoginFinishRequest):
+    """
+    Recebe o código SMS e finaliza.
+    """
+    session = _login_sessions.pop(req.transaction_id, None) # Remove da memória ao finalizar
+    if not session:
+        raise HTTPException(400, "Sessão expirada")
+
+    # Envia comando para a thread (Fase 3)
+    session["cmd_queue"].put({
+        "action": "finish_sms",
+        "sms_code": req.sms_code
+    })
+
+    try:
+        result = session["result_queue"].get(timeout=60)
+    except queue.Empty:
+        raise HTTPException(500, "Timeout na validação do SMS")
+
+    if not result.get("success"):
+        raise HTTPException(400, result.get("error"))
+
+    return result
 
 @app.post("/ucs", dependencies=[Depends(verify_token)])
 def list_ucs(req: UcRequest):
@@ -456,6 +481,34 @@ def list_ucs(req: UcRequest):
         return svc.listar_ucs()
     except Exception as e:
         raise HTTPException(500, str(e))
+
+# [gateway/main.py]
+
+@app.post("/ucs/info", dependencies=[Depends(verify_token)])
+def uc_info_detalhada(req: UcRequest):
+    """
+    Endpoint para buscar detalhes cadastrais da UC.
+    Payload Entrada: { "cpf": "...", "cdc": 123, "digitoVerificadorCdc": 1, "codigoEmpresaWeb": 6 }
+    """
+    try:
+        svc = EnergisaService(req.cpf)
+        
+        if not svc.is_authenticated():
+             raise HTTPException(401, "Sessão inválida ou expirada. Faça login novamente.")
+             
+        # O service converte 'cdc' -> 'uc' internamente
+        result = svc.get_uc_info(req.model_dump())
+        
+        if result.get("errored"):
+            raise HTTPException(400, detail=result.get("message", "Erro ao consultar dados da UC"))
+            
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERRO CRÍTICO /ucs/info: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/faturas/listar", dependencies=[Depends(verify_token)])
 def list_bills(req: UcRequest):
@@ -632,7 +685,10 @@ def autorizacao_pendente(req: AutorizacaoPendenteRequest):
 
 class PublicSimulationStart(BaseModel):
     cpf: str
-    telefone: str
+
+class PublicSimulationSelectPhone(BaseModel):
+    transactionId: str
+    telefone: str  # Número do telefone selecionado (ex: "66*****7647")
 
 class PublicSimulationSms(BaseModel):
     sessionId: str
@@ -642,42 +698,37 @@ class PublicSimulationSms(BaseModel):
 def public_simulation_start(req: PublicSimulationStart):
     """
     Endpoint público para iniciar simulação na landing page.
-    Inicia autenticação com a Energisa via SMS.
+    Agora retorna lista de telefones para o usuário escolher.
     """
     try:
-        # Remove formatação do CPF e telefone
+        # Remove formatação do CPF
         cpf_clean = req.cpf.replace(".", "").replace("-", "")
-        tel_clean = req.telefone.replace("(", "").replace(")", "").replace(" ", "").replace("-", "")
-
-        # Pega os últimos 4 dígitos do telefone
-        final_telefone = tel_clean[-4:]
-
-        # Inicia o login usando a mesma lógica do endpoint protegido
-        transaction_id = f"simulation_{cpf_clean}_{int(time.time())}"
 
         # Cria filas de comunicação
         cmd_queue = queue.Queue()
         result_queue = queue.Queue()
 
-        # Inicia thread do worker
+        # Inicia thread do worker (novo fluxo - sem telefone)
         worker_thread = threading.Thread(
             target=_login_worker_thread,
-            args=(cpf_clean, final_telefone, cmd_queue, result_queue),
+            args=(cpf_clean, cmd_queue, result_queue),
             daemon=True
         )
         worker_thread.start()
 
-        # Aguarda resultado do start_login
+        # Aguarda resultado do start_login (FASE 1 - lista de telefones)
         try:
-            result = result_queue.get(timeout=180)  # 3 minutos
+            result = result_queue.get(timeout=60)  # 1 minuto
         except queue.Empty:
             raise HTTPException(
                 status_code=500,
-                detail="Timeout aguardando start_login"
+                detail="Timeout aguardando lista de telefones"
             )
 
-        if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "Erro desconhecido"))
+
+        transaction_id = result["transaction_id"]
 
         # Armazena a sessão
         _login_sessions[transaction_id] = {
@@ -685,20 +736,53 @@ def public_simulation_start(req: PublicSimulationStart):
             "cmd_queue": cmd_queue,
             "result_queue": result_queue,
             "cpf": cpf_clean,
-            "telefone": tel_clean,
             "created_at": time.time()
         }
 
+        # Retorna lista de telefones para o frontend
         return {
-            "success": True,
-            "sessionId": transaction_id,
-            "message": "SMS enviado com sucesso"
+            "transaction_id": transaction_id,
+            "listaTelefone": result.get("listaTelefone", [])
         }
 
     except HTTPException:
         raise
     except Exception as e:
         print(f"ERRO no endpoint público iniciar: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/public/simulacao/enviar-sms")
+def public_simulation_send_sms(req: PublicSimulationSelectPhone):
+    """
+    Endpoint público para enviar SMS ao telefone selecionado.
+    Fase 2 do processo de autenticação.
+    """
+    try:
+        session = _login_sessions.get(req.transactionId)
+        if not session:
+            raise HTTPException(400, "Sessão não encontrada ou expirada")
+
+        # Envia comando para a thread (FASE 2) com o número do telefone
+        session["cmd_queue"].put({
+            "action": "select_phone",
+            "telefone": req.telefone  # Passa o telefone diretamente (ex: "66*****7647")
+        })
+
+        # Aguarda confirmação de envio do SMS
+        try:
+            result = session["result_queue"].get(timeout=60)
+        except queue.Empty:
+            raise HTTPException(500, "Timeout ao enviar SMS")
+
+        if not result.get("success"):
+            raise HTTPException(500, result.get("error", "Erro ao enviar SMS"))
+
+        return {"success": True, "message": "SMS enviado com sucesso"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERRO ao enviar SMS: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/public/simulacao/validar-sms")
@@ -716,8 +800,8 @@ def public_simulation_validate_sms(req: PublicSimulationSms):
         cmd_queue = session_data["cmd_queue"]
         result_queue = session_data["result_queue"]
 
-        # Envia comando para finalizar login
-        cmd_queue.put({"action": "finish", "sms_code": req.codigo})
+        # Envia comando para finalizar login (FASE 3 - validação SMS)
+        cmd_queue.put({"action": "finish_sms", "sms_code": req.codigo})
 
         # Aguarda resultado
         try:
@@ -725,16 +809,16 @@ def public_simulation_validate_sms(req: PublicSimulationSms):
         except queue.Empty:
             raise HTTPException(status_code=500, detail="Timeout aguardando finish_login")
 
-        if "error" in result:
-            raise HTTPException(status_code=400, detail=result["error"])
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("error", "Erro na validação do SMS"))
 
         # Armazena dados adicionais na sessão
         _login_sessions[session_id]["authenticated"] = True
-        _login_sessions[session_id]["session_file"] = result.get("session_file")
 
         return {
             "success": True,
-            "message": "Autenticação realizada com sucesso"
+            "message": result.get("message", "Autenticação realizada com sucesso"),
+            "session_id": session_id
         }
 
     except HTTPException:
@@ -779,8 +863,8 @@ def public_simulation_get_ucs(session_id: str):
         print(f"ERRO ao buscar UCs: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/public/simulacao/faturas/{session_id}/{numero_uc}")
-def public_simulation_get_faturas(session_id: str, numero_uc: int):
+@app.get("/public/simulacao/faturas/{session_id}/{codigo_uc}")
+def public_simulation_get_faturas(session_id: str, codigo_uc: int):
     """
     Endpoint público para buscar faturas de uma UC específica.
     Retorna faturas dos últimos 12 meses.
@@ -805,32 +889,21 @@ def public_simulation_get_faturas(session_id: str, numero_uc: int):
         # Busca todas as UCs para encontrar a UC específica
         ucs_data = svc.listar_ucs()
 
-        # Encontra a UC pelo numeroUc
+        # Encontra a UC pelo código
         uc_encontrada = None
         for uc in ucs_data:
-            if uc.get('numeroUc') == numero_uc:
+            if uc.get('cdc') == codigo_uc:
                 uc_encontrada = uc
                 break
 
         if not uc_encontrada:
-            raise HTTPException(status_code=404, detail=f"UC {numero_uc} não encontrada")
-
-        # Prepara os dados da UC no formato esperado pelo listar_faturas
-        uc_para_faturas = {
-            'cdc': uc_encontrada.get('numeroUc'),
-            'digitoVerificadorCdc': uc_encontrada.get('digitoVerificador'),
-            'codigoEmpresaWeb': uc_encontrada.get('codigoEmpresaWeb', 6)
-        }
+            raise HTTPException(status_code=404, detail="UC não encontrada")
 
         # Busca as faturas da UC
-        faturas_data = svc.listar_faturas(uc_para_faturas)
+        faturas_data = svc.listar_faturas(uc_encontrada)
 
         # Limita aos últimos 12 meses
         faturas_12_meses = faturas_data[-12:] if len(faturas_data) > 12 else faturas_data
-
-        # Log da primeira fatura para debug
-        if faturas_12_meses:
-            print(f"📋 Exemplo de fatura: {faturas_12_meses[0]}")
 
         return {
             "success": True,
@@ -842,6 +915,11 @@ def public_simulation_get_faturas(session_id: str, numero_uc: int):
     except Exception as e:
         print(f"ERRO ao buscar faturas: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# [gateway/main.py]
+
+
 
 if __name__ == "__main__":
     import uvicorn

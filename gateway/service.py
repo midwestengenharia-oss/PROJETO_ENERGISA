@@ -10,6 +10,58 @@ from session_manager import SessionManager
 PENDING_LOGINS = {}
 
 class EnergisaService:
+    def get_uc_info(self, uc_data: dict):
+        """
+        Consulta informações detalhadas da Unidade Consumidora.
+        URL: /api/clientes/UnidadeConsumidora/Informacao?codigoEmpresaWeb=...&uc=...&digitoVerificador=...
+        Body: Tokens de autenticação.
+        """
+        try:
+            # Mapeia os dados do seu sistema para os parâmetros da URL da Energisa
+            empresa = int(uc_data.get('codigoEmpresaWeb', 6))
+            # O parâmetro na URL é 'uc', mas no seu payload/request vem como 'cdc'
+            uc_numero = int(uc_data.get('cdc')) 
+            # O parâmetro na URL é 'digitoVerificador', no request vem como 'digitoVerificadorCdc'
+            dv = int(uc_data.get('digitoVerificadorCdc'))
+        except (ValueError, TypeError):
+            raise Exception("Dados da UC inválidos. Certifique-se de que CDC e Dígito são números.")
+
+        # Monta a URL com os Query Params
+        url = f"{self.base_url}/api/clientes/UnidadeConsumidora/Informacao?codigoEmpresaWeb={empresa}&uc={uc_numero}&digitoVerificador={dv}"
+        
+        # Prepara o Payload (Body) com os tokens de sessão
+        payload = self._get_tokens_payload()
+        headers = self._get_headers()
+
+        print(f"   ℹ️ Consultando detalhes cadastrais da UC {uc_numero}...")
+
+        try:
+            # POST Request
+            resp = self.session.post(url, json=payload, headers=headers)
+
+            # Lógica de Retry (Refresh Token) se der 401
+            if resp.status_code == 401:
+                print("   ⚠️ 401 ao consultar UC Info. Tentando renovar token...")
+                if self._refresh_token():
+                    # Atualiza os tokens no payload e tenta de novo
+                    payload = self._get_tokens_payload()
+                    resp = self.session.post(url, json=payload, headers=headers)
+
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                print(f"   ❌ Erro UC Info: {resp.status_code} - {resp.text[:200]}")
+                # Tenta retornar o erro formatado se for JSON, senão cria um objeto de erro
+                try: 
+                    return resp.json()
+                except: 
+                    return {"errored": True, "message": f"Erro HTTP {resp.status_code}", "details": resp.text}
+
+        except Exception as e:
+            print(f"   ❌ Exceção UC Info: {e}")
+            return {"errored": True, "message": str(e)}
+
+
     def __init__(self, cpf: str):
         self.cpf = cpf.replace(".", "").replace("-", "")
         self.base_url = "https://servicos.energisa.com.br"
@@ -1029,3 +1081,76 @@ class EnergisaService:
         except Exception as e:
             print(f"   ❌ Erro autorizacao_pendente_get: {e}")
             return {"errored": True, "message": str(e)}
+    def _get_build_id(self):
+        """Busca o identificador da versão atual do site (necessário para rotas _next)"""
+        if hasattr(self, '_cached_build_id'):
+            return self._cached_build_id
+
+        print("   🔍 Buscando buildId do Next.js...")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+        
+        # Tenta buscar em rotas públicas primeiro (Login ou Home)
+        urls_to_try = [f"{self.base_url}/login", f"{self.base_url}/home"]
+        
+        for url in urls_to_try:
+            try:
+                resp = self.session.get(url, headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    match = re.search(r'"buildId"\s*:\s*"([^"]+)"', resp.text)
+                    if match:
+                        bid = match.group(1)
+                        self._cached_build_id = bid
+                        print(f"   ✅ BuildId encontrado em {url}: {bid}")
+                        return bid
+            except Exception as e:
+                print(f"   ⚠️ Erro ao buscar buildId em {url}: {e}")
+            
+        return None
+
+    def get_login_options(self):
+        """
+        Busca as opções de contato (Telefone/Email) para o CPF informado.
+        Usa a API interna do Next.js da Energisa.
+        """
+        build_id = self._get_build_id()
+        if not build_id:
+            raise Exception("Não foi possível obter o BuildId da aplicação Energisa.")
+
+        # Monta a URL do JSON de dados da página de seleção
+        url = f"{self.base_url}/_next/data/{build_id}/login/selecionar-numero.json"
+
+        # IMPORTANTE: Define o cookie do CPF para o servidor saber quem somos
+        self.session.cookies.set("cpf", self.cpf)
+
+        headers = self._get_headers(json_content=False)
+        headers.update({
+            "Accept": "*/*",
+            "x-nextjs-data": "1"
+        })
+
+        print(f"   📋 Buscando opções de login para CPF {self.cpf}...")
+        
+        try:
+            resp = self.session.get(url, headers=headers)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                page_props = data.get("pageProps", {}).get("data", {})
+                
+                return {
+                    "listaTelefone": page_props.get("listaTelefone", []),
+                    "listaEmail": page_props.get("listaEmail", []),
+                    "dadosUsuario": page_props.get("dadosUsuario", {})
+                }
+            else:
+                # Se falhar, tenta verificar se não é um redirecionamento ou erro de cookie
+                print(f"   ❌ Erro ao buscar opções: {resp.status_code} - {resp.text[:100]}")
+                raise Exception(f"Falha ao obter opções de login. HTTP {resp.status_code}")
+                
+        except Exception as e:
+            raise Exception(f"Erro na requisição de opções: {str(e)}")
+    
+
+    
