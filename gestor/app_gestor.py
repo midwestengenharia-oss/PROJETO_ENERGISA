@@ -135,11 +135,10 @@ def listar_ucs_cliente(
                 "uf": uc.uf,
                 "uc_ativa": uc.uc_ativa,
                 "contrato_ativo": uc.contrato_ativo,
-                "usuarioGerenciandoCdcs": uc.usuario_gerenciando_cdcs,
                 # Adiciona o CPF da empresa para comparação
                 "cpf_empresa": cliente.responsavel_cpf,
-                # Adiciona o cpfCnpj da UC se tiver
-                "cpf_cnpj_uc": uc.cpf_cnpj if hasattr(uc, 'cpf_cnpj') else None
+                # Adiciona o cpfCnpj da UC (campo que agora existe)
+                "cpf_cnpj_uc": uc.cpf_cnpj
             }
             ucs_com_proprietario.append(uc_dict)
 

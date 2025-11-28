@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker-compose restart:*)"
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []
