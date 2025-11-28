@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Response, Depends, status, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Response, Depends, status, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ from typing import List, Dict, Any
 import threading
 import queue
 import time
+from security_middleware import SecurityMiddleware, security_manager
 
 # Gerenciador de sessoes de login em threads separadas
 # Cada login fica em sua propria thread ate o finish_login
@@ -20,19 +21,26 @@ _login_sessions = {}  # transaction_id -> {"thread": thread, "cmd_queue": queue,
 
 app = FastAPI(title="Energisa API Segura", version="2.1.0")
 
-# Configuração de CORS
+# Carrega variáveis de ambiente primeiro
+load_dotenv()
+
+# Configuração de CORS - Usa variável de ambiente para produção
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especifique as origens permitidas
+    allow_origins=ALLOWED_ORIGINS,  # Agora controlado por variável de ambiente
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
 )
+
+# Adiciona middleware de segurança
+app.add_middleware(SecurityMiddleware)
 
 # --- CONFIGURAÇÃO DE SEGURANÇA ---
 
 # Chave secreta para assinar o token (Em produção, use variável de ambiente!)
-load_dotenv()  # Carrega variáveis do .env
 SECRET_KEY = os.getenv("API_SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 # Token vale por 1 hora
@@ -695,12 +703,18 @@ class PublicSimulationSms(BaseModel):
     codigo: str
 
 @app.post("/public/simulacao/iniciar")
-def public_simulation_start(req: PublicSimulationStart):
+def public_simulation_start(req: PublicSimulationStart, request: Request):
     """
     Endpoint público para iniciar simulação na landing page.
     Agora retorna lista de telefones para o usuário escolher.
+    PROTEGIDO: Rate limiting, validação de IP, session segura
     """
     try:
+        # Obtém IP real do cliente
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+
         # Remove formatação do CPF
         cpf_clean = req.cpf.replace(".", "").replace("-", "")
 
@@ -726,22 +740,29 @@ def public_simulation_start(req: PublicSimulationStart):
             )
 
         if not result.get("success"):
+            # Registra falha de autenticação
+            security_manager.register_auth_failure(ip)
             raise HTTPException(status_code=500, detail=result.get("error", "Erro desconhecido"))
 
         transaction_id = result["transaction_id"]
 
-        # Armazena a sessão
-        _login_sessions[transaction_id] = {
+        # Cria session segura vinculada ao IP
+        secure_session_id = security_manager.create_session(ip, cpf_clean, expires_minutes=30)
+
+        # Armazena a sessão com session seguro
+        _login_sessions[secure_session_id] = {
             "thread": worker_thread,
             "cmd_queue": cmd_queue,
             "result_queue": result_queue,
             "cpf": cpf_clean,
+            "ip": ip,  # Armazena IP para validação posterior
+            "transaction_id": transaction_id,  # ID original da Energisa
             "created_at": time.time()
         }
 
         # Retorna lista de telefones para o frontend
         return {
-            "transaction_id": transaction_id,
+            "transaction_id": secure_session_id,  # Retorna session seguro, não o transaction_id original
             "listaTelefone": result.get("listaTelefone", [])
         }
 
@@ -752,15 +773,31 @@ def public_simulation_start(req: PublicSimulationStart):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/public/simulacao/enviar-sms")
-def public_simulation_send_sms(req: PublicSimulationSelectPhone):
+def public_simulation_send_sms(req: PublicSimulationSelectPhone, request: Request):
     """
     Endpoint público para enviar SMS ao telefone selecionado.
     Fase 2 do processo de autenticação.
+    PROTEGIDO: Validação de sessão e IP
     """
     try:
+        # Obtém IP real do cliente
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+
+        # Valida session segura vinculada ao IP
+        if not security_manager.validate_session(req.transactionId, ip):
+            raise HTTPException(401, "Sessão inválida, expirada ou não pertence a este dispositivo")
+
         session = _login_sessions.get(req.transactionId)
         if not session:
             raise HTTPException(400, "Sessão não encontrada ou expirada")
+
+        # Verifica se o IP da sessão bate com o IP atual (proteção contra session hijacking)
+        if session.get("ip") != ip:
+            security_manager.invalidate_session(req.transactionId)
+            security_manager.block_ip(ip, "Tentativa de session hijacking no envio de SMS")
+            raise HTTPException(403, "Acesso negado - dispositivo não autorizado")
 
         # Envia comando para a thread (FASE 2) com o número do telefone
         session["cmd_queue"].put({
@@ -786,17 +823,34 @@ def public_simulation_send_sms(req: PublicSimulationSelectPhone):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/public/simulacao/validar-sms")
-def public_simulation_validate_sms(req: PublicSimulationSms):
+def public_simulation_validate_sms(req: PublicSimulationSms, request: Request):
     """
     Endpoint público para validar código SMS da simulação.
+    PROTEGIDO: Validação de sessão e IP
     """
     try:
+        # Obtém IP real do cliente
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+
         session_id = req.sessionId
+
+        # Valida session segura vinculada ao IP
+        if not security_manager.validate_session(session_id, ip):
+            raise HTTPException(401, "Sessão inválida, expirada ou não pertence a este dispositivo")
 
         if session_id not in _login_sessions:
             raise HTTPException(status_code=404, detail="Sessão não encontrada ou expirada")
 
         session_data = _login_sessions[session_id]
+
+        # Verifica se o IP da sessão bate com o IP atual
+        if session_data.get("ip") != ip:
+            security_manager.invalidate_session(session_id)
+            security_manager.block_ip(ip, "Tentativa de session hijacking na validação SMS")
+            raise HTTPException(403, "Acesso negado - dispositivo não autorizado")
+
         cmd_queue = session_data["cmd_queue"]
         result_queue = session_data["result_queue"]
 
@@ -810,6 +864,8 @@ def public_simulation_validate_sms(req: PublicSimulationSms):
             raise HTTPException(status_code=500, detail="Timeout aguardando finish_login")
 
         if not result.get("success"):
+            # Registra falha de autenticação
+            security_manager.register_auth_failure(ip)
             raise HTTPException(status_code=400, detail=result.get("error", "Erro na validação do SMS"))
 
         # Armazena dados adicionais na sessão
@@ -828,15 +884,31 @@ def public_simulation_validate_sms(req: PublicSimulationSms):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/public/simulacao/ucs/{session_id}")
-def public_simulation_get_ucs(session_id: str):
+def public_simulation_get_ucs(session_id: str, request: Request):
     """
     Endpoint público para buscar UCs após autenticação.
+    PROTEGIDO: Validação de sessão e IP
     """
     try:
+        # Obtém IP real do cliente
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+
+        # Valida session segura vinculada ao IP
+        if not security_manager.validate_session(session_id, ip):
+            raise HTTPException(401, "Sessão inválida, expirada ou não pertence a este dispositivo")
+
         if session_id not in _login_sessions:
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
         session_data = _login_sessions[session_id]
+
+        # Verifica se o IP da sessão bate com o IP atual
+        if session_data.get("ip") != ip:
+            security_manager.invalidate_session(session_id)
+            security_manager.block_ip(ip, "Tentativa de session hijacking ao buscar UCs")
+            raise HTTPException(403, "Acesso negado - dispositivo não autorizado")
 
         if not session_data.get("authenticated"):
             raise HTTPException(status_code=401, detail="Sessão não autenticada")
@@ -864,16 +936,32 @@ def public_simulation_get_ucs(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/public/simulacao/faturas/{session_id}/{codigo_uc}")
-def public_simulation_get_faturas(session_id: str, codigo_uc: int):
+def public_simulation_get_faturas(session_id: str, codigo_uc: int, request: Request):
     """
     Endpoint público para buscar faturas de uma UC específica.
     Retorna faturas dos últimos 12 meses.
+    PROTEGIDO: Validação de sessão e IP
     """
     try:
+        # Obtém IP real do cliente
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+
+        # Valida session segura vinculada ao IP
+        if not security_manager.validate_session(session_id, ip):
+            raise HTTPException(401, "Sessão inválida, expirada ou não pertence a este dispositivo")
+
         if session_id not in _login_sessions:
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
         session_data = _login_sessions[session_id]
+
+        # Verifica se o IP da sessão bate com o IP atual
+        if session_data.get("ip") != ip:
+            security_manager.invalidate_session(session_id)
+            security_manager.block_ip(ip, "Tentativa de session hijacking ao buscar faturas")
+            raise HTTPException(403, "Acesso negado - dispositivo não autorizado")
 
         if not session_data.get("authenticated"):
             raise HTTPException(status_code=401, detail="Sessão não autenticada")
