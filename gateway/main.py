@@ -889,18 +889,27 @@ def public_simulation_get_faturas(session_id: str, codigo_uc: int):
         # Busca todas as UCs para encontrar a UC específica
         ucs_data = svc.listar_ucs()
 
-        # Encontra a UC pelo código
+        # Encontra a UC pelo código (numeroUc)
         uc_encontrada = None
         for uc in ucs_data:
-            if uc.get('cdc') == codigo_uc:
+            if uc.get('numeroUc') == codigo_uc:
                 uc_encontrada = uc
                 break
 
         if not uc_encontrada:
             raise HTTPException(status_code=404, detail="UC não encontrada")
 
+        # Mapeia os campos da UC para o formato esperado pelo service
+        # A UC retornada por listar_ucs usa 'numeroUc' e 'digitoVerificador'
+        # Mas listar_faturas espera 'cdc' e 'digitoVerificadorCdc'
+        uc_mapeada = {
+            'cdc': uc_encontrada.get('numeroUc'),
+            'digitoVerificadorCdc': uc_encontrada.get('digitoVerificador'),
+            'codigoEmpresaWeb': uc_encontrada.get('codigoEmpresaWeb', 6)
+        }
+
         # Busca as faturas da UC
-        faturas_data = svc.listar_faturas(uc_encontrada)
+        faturas_data = svc.listar_faturas(uc_mapeada)
 
         # Limita aos últimos 12 meses
         faturas_12_meses = faturas_data[-12:] if len(faturas_data) > 12 else faturas_data
