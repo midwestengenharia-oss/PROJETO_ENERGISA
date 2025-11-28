@@ -16,12 +16,22 @@ const gatewayApi = axios.create({
   baseURL: GATEWAY_URL,
 });
 
-type SimulationStep = 'cpf' | 'sms' | 'select-uc' | 'report';
+type SimulationStep = 'cpf' | 'phone-select' | 'sms' | 'select-uc' | 'report';
+
+interface PhoneOption {
+  codigoEmpresaWeb: number;
+  cdc: number;
+  digitoVerificador: number;
+  posicao: number;
+  celular: string;
+}
 
 interface SimulationData {
   cpf: string;
   telefone?: string;
+  transactionId?: string;
   sessionId?: string;
+  listaTelefone?: PhoneOption[];
   ucs?: UnidadeConsumidora[];
   selectedUc?: UnidadeConsumidora;
   faturas?: Fatura[];
@@ -39,14 +49,16 @@ export function SimulationFlow() {
 
   // Step 1: CPF Input
   const [cpf, setCpf] = useState('');
-  const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Step 2: SMS Code
+  // Step 2: Phone Selection
+  const [selectedPhone, setSelectedPhone] = useState<PhoneOption | null>(null);
+
+  // Step 3: SMS Code
   const [smsCode, setSmsCode] = useState('');
   const [validatingSms, setValidatingSms] = useState(false);
 
-  // Step 3: UCs Selection
+  // Step 4: UCs Selection
   const [selectedUcId, setSelectedUcId] = useState<number | null>(null);
 
   // Step 4: Report Data
@@ -65,52 +77,65 @@ export function SimulationFlow() {
     return numbers.slice(0, 11);
   };
 
-  // Format Phone
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{5})(\d)/, '$1-$2');
-    }
-    return numbers.slice(0, 11);
-  };
-
-  // Step 1: Submit CPF and Phone
+  // Step 1: Submit CPF (get phone list)
   const handleSubmitCpf = async () => {
     const cpfNumbers = cpf.replace(/\D/g, '');
-    const telefoneNumbers = telefone.replace(/\D/g, '');
 
     if (cpfNumbers.length !== 11) {
       toast.error('CPF inválido. Digite um CPF válido.');
       return;
     }
 
-    if (telefoneNumbers.length < 10) {
-      toast.error('Telefone inválido. Digite um telefone válido.');
+    setLoading(true);
+    try {
+      // Call public simulation API to get available phones
+      const response = await gatewayApi.post('/public/simulacao/iniciar', {
+        cpf: cpfNumbers
+      });
+
+      if (response.data.transaction_id && response.data.listaTelefone) {
+        setSimulationData({
+          ...simulationData,
+          cpf: cpfNumbers,
+          transactionId: response.data.transaction_id,
+          listaTelefone: response.data.listaTelefone
+        });
+        setCurrentStep('phone-select');
+        toast.success('CPF encontrado! Selecione o telefone para receber o SMS.');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'CPF não encontrado ou erro ao buscar telefones');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Select Phone and Send SMS
+  const handleSelectPhone = async () => {
+    if (!selectedPhone) {
+      toast.error('Selecione um telefone.');
       return;
     }
 
     setLoading(true);
     try {
-      // Call public API to start authentication process
-      const response = await gatewayApi.post('/public/simulacao/iniciar', {
-        cpf: cpfNumbers,
-        telefone: telefoneNumbers
+      // Send SMS to selected phone - enviamos o número do celular
+      const response = await gatewayApi.post('/public/simulacao/enviar-sms', {
+        transactionId: simulationData.transactionId,
+        telefone: selectedPhone.celular
       });
 
       if (response.data.success) {
         setSimulationData({
           ...simulationData,
-          cpf: cpfNumbers,
-          telefone: telefoneNumbers,
-          sessionId: response.data.sessionId
+          telefone: selectedPhone.celular,
+          sessionId: simulationData.transactionId
         });
         setCurrentStep('sms');
-        toast.success('SMS enviado! Verifique seu celular.');
+        toast.success(`SMS enviado para ${selectedPhone.celular}!`);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao iniciar autenticação');
+      toast.error(error.response?.data?.detail || 'Erro ao enviar SMS');
     } finally {
       setLoading(false);
     }
@@ -223,11 +248,10 @@ export function SimulationFlow() {
             {currentStep !== 'cpf' && (
               <button
                 onClick={handleBack}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  isDark
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDark
                     ? 'text-slate-300 hover:bg-slate-800'
                     : 'text-slate-700 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <ArrowLeft size={20} />
                 Voltar
@@ -249,32 +273,29 @@ export function SimulationFlow() {
               <div key={label} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                      isCompleted
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${isCompleted
                         ? 'bg-green-500 text-white'
                         : isActive
-                        ? 'bg-[#00A3E0] text-white'
-                        : isDark
-                        ? 'bg-slate-700 text-slate-400'
-                        : 'bg-slate-200 text-slate-500'
-                    }`}
+                          ? 'bg-[#00A3E0] text-white'
+                          : isDark
+                            ? 'bg-slate-700 text-slate-400'
+                            : 'bg-slate-200 text-slate-500'
+                      }`}
                   >
                     {isCompleted ? <CheckCircle2 size={20} /> : index + 1}
                   </div>
-                  <span className={`text-xs mt-2 ${
-                    isActive
+                  <span className={`text-xs mt-2 ${isActive
                       ? isDark ? 'text-white' : 'text-slate-900'
                       : isDark ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
+                    }`}>
                     {label}
                   </span>
                 </div>
                 {index < 3 && (
-                  <div className={`h-1 flex-1 mx-2 rounded ${
-                    isCompleted
+                  <div className={`h-1 flex-1 mx-2 rounded ${isCompleted
                       ? 'bg-green-500'
                       : isDark ? 'bg-slate-700' : 'bg-slate-200'
-                  }`} />
+                    }`} />
                 )}
               </div>
             );
@@ -309,32 +330,12 @@ export function SimulationFlow() {
                   value={cpf}
                   onChange={(e) => setCpf(formatCPF(e.target.value))}
                   placeholder="000.000.000-00"
-                  className={`w-full px-4 py-3 rounded-lg border text-lg ${
-                    isDark
+                  className={`w-full px-4 py-3 rounded-lg border text-lg ${isDark
                       ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500'
                       : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                  } focus:ring-2 focus:ring-[#00A3E0] focus:border-transparent transition-all`}
+                    } focus:ring-2 focus:ring-[#00A3E0] focus:border-transparent transition-all`}
+                  autoFocus
                 />
-              </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  Telefone (com DDD)
-                </label>
-                <input
-                  type="text"
-                  value={telefone}
-                  onChange={(e) => setTelefone(formatPhone(e.target.value))}
-                  placeholder="(00) 00000-0000"
-                  className={`w-full px-4 py-3 rounded-lg border text-lg ${
-                    isDark
-                      ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500'
-                      : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                  } focus:ring-2 focus:ring-[#00A3E0] focus:border-transparent transition-all`}
-                />
-                <p className={`text-xs mt-2 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                  Enviaremos um código de verificação por SMS
-                </p>
               </div>
 
               <button
@@ -345,7 +346,7 @@ export function SimulationFlow() {
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    Enviando SMS...
+                    Buscando telefones...
                   </>
                 ) : (
                   <>
@@ -365,7 +366,81 @@ export function SimulationFlow() {
           </div>
         )}
 
-        {/* Step 2: SMS Validation */}
+        {/* Step 2: Phone Selection */}
+        {currentStep === 'phone-select' && (
+          <div className={`p-8 rounded-2xl ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200'} shadow-xl`}>
+            <div className="text-center mb-8">
+              <div className="inline-flex p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl mb-4">
+                <Shield className="text-blue-500" size={48} />
+              </div>
+              <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Selecione um telefone
+              </h2>
+              <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>
+                Encontramos os seguintes telefones cadastrados
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-3">
+                {simulationData.listaTelefone?.map((phone) => (
+                  <button
+                    key={`${phone.cdc}-${phone.digitoVerificador}-${phone.posicao}`}
+                    onClick={() => setSelectedPhone(phone)}
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${selectedPhone?.cdc === phone.cdc && selectedPhone?.posicao === phone.posicao
+                        ? 'border-[#00A3E0] bg-[#00A3E0]/10'
+                        : isDark
+                          ? 'border-slate-700 hover:border-slate-600 bg-slate-900'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                          {phone.celular}
+                        </div>
+                        <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                          UC: {phone.cdc}-{phone.digitoVerificador}
+                        </div>
+                      </div>
+                      {selectedPhone?.cdc === phone.cdc && selectedPhone?.posicao === phone.posicao && (
+                        <CheckCircle2 className="text-[#00A3E0]" size={24} />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSelectPhone}
+                disabled={!selectedPhone || loading}
+                className="w-full px-6 py-4 bg-gradient-to-r from-[#00A3E0] to-blue-600 text-white rounded-xl font-semibold text-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Enviando SMS...
+                  </>
+                ) : (
+                  <>
+                    Enviar SMS
+                    <ChevronRight size={20} />
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setCurrentStep('cpf')}
+                className={`w-full px-4 py-2 rounded-lg ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'} transition-colors flex items-center justify-center gap-2`}
+              >
+                <ArrowLeft size={16} />
+                Voltar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: SMS Validation */}
         {currentStep === 'sms' && (
           <div className={`p-8 rounded-2xl ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-200'} shadow-xl`}>
             <div className="text-center mb-8">
@@ -376,7 +451,7 @@ export function SimulationFlow() {
                 Verifique seu celular
               </h2>
               <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>
-                Enviamos um código de verificação para {telefone}
+                Enviamos um código de verificação para {simulationData.telefone || 'seu celular'}
               </p>
             </div>
 
@@ -390,11 +465,10 @@ export function SimulationFlow() {
                   value={smsCode}
                   onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
-                  className={`w-full px-4 py-3 rounded-lg border text-lg text-center tracking-widest font-mono ${
-                    isDark
+                  className={`w-full px-4 py-3 rounded-lg border text-lg text-center tracking-widest font-mono ${isDark
                       ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500'
                       : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                  } focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all`}
+                    } focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all`}
                   maxLength={6}
                   autoFocus
                 />
@@ -421,11 +495,10 @@ export function SimulationFlow() {
               <button
                 onClick={handleSubmitCpf}
                 disabled={loading}
-                className={`w-full px-4 py-3 rounded-lg transition-colors ${
-                  isDark
+                className={`w-full px-4 py-3 rounded-lg transition-colors ${isDark
                     ? 'text-slate-400 hover:bg-slate-900'
                     : 'text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Não recebeu o código? Enviar novamente
               </button>
@@ -459,15 +532,14 @@ export function SimulationFlow() {
                     key={ucId}
                     onClick={() => setSelectedUcId(ucId)}
                     disabled={!isUcAtiva}
-                    className={`w-full p-6 rounded-xl border-2 text-left transition-all ${
-                      !isUcAtiva
+                    className={`w-full p-6 rounded-xl border-2 text-left transition-all ${!isUcAtiva
                         ? 'opacity-50 cursor-not-allowed border-slate-300'
                         : selectedUcId === ucId
-                        ? 'border-[#00A3E0] bg-[#00A3E0]/10'
-                        : isDark
-                        ? 'border-slate-700 hover:border-slate-600 bg-slate-900'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
+                          ? 'border-[#00A3E0] bg-[#00A3E0]/10'
+                          : isDark
+                            ? 'border-slate-700 hover:border-slate-600 bg-slate-900'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -491,13 +563,12 @@ export function SimulationFlow() {
                           </p>
                         )}
                       </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedUcId === ucId
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedUcId === ucId
                           ? 'border-[#00A3E0] bg-[#00A3E0]'
                           : isDark
-                          ? 'border-slate-600'
-                          : 'border-slate-300'
-                      }`}>
+                            ? 'border-slate-600'
+                            : 'border-slate-300'
+                        }`}>
                         {selectedUcId === ucId && (
                           <CheckCircle2 size={14} className="text-white" />
                         )}
@@ -658,11 +729,10 @@ export function SimulationFlow() {
                   <Share2 size={20} />
                   Entrar em Contato
                 </button>
-                <button className={`px-6 py-3 rounded-xl font-semibold border-2 transition-all ${
-                  isDark
+                <button className={`px-6 py-3 rounded-xl font-semibold border-2 transition-all ${isDark
                     ? 'border-slate-700 text-white hover:bg-slate-800'
                     : 'border-slate-300 text-slate-900 hover:bg-slate-50'
-                } flex items-center justify-center gap-2`}>
+                  } flex items-center justify-center gap-2`}>
                   <Download size={20} />
                   Baixar Relatório
                 </button>
@@ -671,11 +741,10 @@ export function SimulationFlow() {
 
             <button
               onClick={handleBackToHome}
-              className={`w-full px-4 py-3 rounded-lg transition-colors ${
-                isDark
+              className={`w-full px-4 py-3 rounded-lg transition-colors ${isDark
                   ? 'text-slate-400 hover:bg-slate-800'
                   : 'text-slate-600 hover:bg-slate-50'
-              }`}
+                }`}
             >
               Voltar ao Início
             </button>
