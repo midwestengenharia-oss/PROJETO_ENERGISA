@@ -131,7 +131,7 @@ export function LandingPage() {
             </div>
             <div className="flex items-center gap-3">
               <a
-                href="https://wa.me/5565999999999?text=Quero%20economizar%2030%25%20na%20conta%20de%20luz!"
+                href="https://wa.me/5566996350491?text=Quero%20economizar%2030%25%20na%20conta%20de%20luz!"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 bg-[#10B981] text-white rounded-lg font-medium hover:bg-[#059669] transition-all"
@@ -867,7 +867,7 @@ export function LandingPage() {
               </p>
               <div className="space-y-2 text-sm">
                 <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>
-                  CNPJ: XX.XXX.XXX/0001-XX
+                  CNPJ: 61.902.316/0001-63
                 </p>
               </div>
             </div>
@@ -900,13 +900,13 @@ export function LandingPage() {
               </h4>
               <div className="space-y-3">
                 <a
-                  href="https://wa.me/5565999999999"
+                  href="https://wa.me/5566996350491"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`flex items-center gap-3 text-sm hover:text-[#10B981] transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
                 >
                   <Phone size={16} />
-                  (65) 99999-9999
+                  (66) 99635-0491
                 </a>
                 <div className={`flex items-start gap-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   <MapPin size={16} className="mt-0.5" />
