@@ -24,7 +24,15 @@ import aneel_api
 # Cada login fica em sua propria thread ate o finish_login
 _login_sessions = {}  # transaction_id -> {"thread": thread, "cmd_queue": queue, "result_queue": queue}
 
-app = FastAPI(title="Energisa API Segura", version="2.1.0")
+app = FastAPI(
+    title="Energisa API Segura",
+    description="API para integração com sistema Energisa - Scraping autenticado e gestão de UCs",
+    version="2.1.0",
+    openapi_version="3.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    root_path="/gateway"  # Importante para funcionar atrás do proxy nginx
+)
 
 # Carrega variáveis de ambiente primeiro
 load_dotenv()

@@ -1162,6 +1162,7 @@ class EnergisaService:
             cdc = uc_data.get('cdc')
             digito = uc_data.get('digitoVerificadorCdc')
             empresa = uc_data.get('codigoEmpresaWeb', 6)
+            grupoleitura = uc_data.get('grupoLeitura', 'B')  # Hardcoded conforme seu exemplo
             
             # 2. Obter Build ID (Necessário para montar a URL do Next.js)
             build_id = self._get_build_id()
@@ -1183,7 +1184,7 @@ class EnergisaService:
                 "codigoEmpresaWeb": empresa,
                 "numeroCdc": cdc,           # Atenção: aqui usa 'numeroCdc'
                 "digitoVerificador": digito,
-                "GrupoLeitura": "B",        # Hardcoded conforme seu exemplo
+                "GrupoLeitura": grupoleitura,        # Hardcoded conforme seu exemplo
                 "Redirect": ""
             }
 
@@ -1209,9 +1210,9 @@ class EnergisaService:
                 if dados_server.get("errored"):
                     return {"errored": True, "message": dados_server.get("mensagem")}
                 
-                faturas = dados_server.get("faturas", [])
-                print(f"   ✅ [SSR] Sucesso! {len(faturas)} faturas encontradas.")
-                return faturas
+                dados_usuario = dados_server.get("dadosUsuario", [])
+                print(f"   ✅ [SSR] Sucesso! {len(dados_usuario)} faturas encontradas.")
+                return data
             else:
                 print(f"   ❌ [SSR] Erro: HTTP {resp.status_code}")
                 return {"errored": True, "status": resp.status_code, "content": resp.text[:200]}
