@@ -6,6 +6,7 @@ import { useTheme } from './contexts/ThemeContext';
 import { GestoresPage } from './pages/GestoresPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminLeads } from './pages/AdminLeads';
+import { GDTree } from './components/GDTree';
 import {
   Activity, Plug, Plus, RefreshCw, ArrowLeft, Home, FileText, Download, Loader2, Sun, BatteryCharging, ChevronDown, ChevronUp, Barcode, QrCode, X, Share2, LogOut, User, Building2, Zap, AlertCircle, CheckCircle2, Clock, DollarSign, BarChart3, PieChart, Eye, GitBranch, Move, ZoomIn, ZoomOut, Maximize2, TrendingUp, TrendingDown, Calendar, ArrowRightLeft, Layers, Timer, MapPin, ChevronRight, Menu, ChevronLeft, Moon, SunMedium, PanelLeftClose, PanelLeft, UserCog, Users
 } from 'lucide-react';
@@ -589,44 +590,14 @@ function App() {
     );
   };
 
-  // --- COMPONENTE ÁRVORE DE BENEFICIÁRIAS ---
+  // --- COMPONENTE ÁRVORE DE BENEFICIÁRIAS (usando ReactFlow) ---
   const ArvoreModal = ({ usina, onClose }: { usina: UsinaComEmpresa; onClose: () => void }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [scale, setScale] = useState(1);
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      if (e.target === containerRef.current || (e.target as HTMLElement).closest('.tree-container')) {
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-      }
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (isDragging) {
-        setPosition({
-          x: e.clientX - dragStart.x,
-          y: e.clientY - dragStart.y
-        });
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    const zoomIn = () => setScale(s => Math.min(s + 0.2, 2));
-    const zoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
-    const resetView = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
-
     const beneficiarias = usina.beneficiarias || [];
     const totalBeneficiarias = beneficiarias.length;
 
     return (
       <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-        <div className="bg-white w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className={`w-full max-w-6xl h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-5 flex justify-between items-center text-white">
             <div className="flex items-center gap-3">
@@ -634,168 +605,31 @@ function App() {
                 <GitBranch size={24} />
               </div>
               <div>
-                <h3 className="font-bold text-lg">Árvore de Rateio</h3>
+                <h3 className="font-bold text-lg">Árvore de Rateio - GD</h3>
                 <p className="text-orange-100 text-sm">Usina {usina.codigo_uc} • {totalBeneficiarias} beneficiária(s)</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={zoomOut} className="p-2 hover:bg-white/20 rounded-lg transition" title="Diminuir zoom">
-                <ZoomOut size={20} />
-              </button>
-              <span className="text-sm font-mono bg-white/20 px-2 py-1 rounded">{Math.round(scale * 100)}%</span>
-              <button onClick={zoomIn} className="p-2 hover:bg-white/20 rounded-lg transition" title="Aumentar zoom">
-                <ZoomIn size={20} />
-              </button>
-              <button onClick={resetView} className="p-2 hover:bg-white/20 rounded-lg transition" title="Resetar visualização">
-                <Maximize2 size={20} />
-              </button>
-              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition ml-2">
+              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition">
                 <X size={24} />
               </button>
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2 text-sm text-slate-600">
-            <Move size={16} />
-            <span>Arraste para mover a visualização</span>
+          {/* Conteúdo com GDTree */}
+          <div className="flex-1 overflow-auto p-4">
+            <GDTree
+              usina={usina}
+              isDark={isDark}
+            />
           </div>
 
-          {/* Canvas da árvore */}
-          <div
-            ref={containerRef}
-            className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 cursor-grab active:cursor-grabbing"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            <div
-              className="tree-container w-full h-full flex items-center justify-center"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transformOrigin: 'center center',
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-              }}
-            >
-              <div className="flex flex-col items-center py-12">
-                {/* Nó da Usina (Raiz) */}
-                <div className="relative">
-                  <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl p-6 shadow-xl text-white min-w-[280px] transform hover:scale-105 transition-transform">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
-                        <Sun size={32} />
-                      </div>
-                      <div>
-                        <span className="text-xs bg-white/30 px-2 py-0.5 rounded-full font-bold">GERADORA</span>
-                        <h4 className="text-xl font-bold mt-1">UC {usina.codigo_uc}</h4>
-                        <p className="text-orange-100 text-sm truncate max-w-[180px]">{usina.endereco}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <BatteryCharging size={18} />
-                        <span className="font-bold">{usina.saldo_acumulado || 0} kWh</span>
-                      </div>
-                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Saldo</span>
-                    </div>
-                  </div>
-
-                  {/* Linha vertical para beneficiárias */}
-                  {totalBeneficiarias > 0 && (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-1 h-16 bg-gradient-to-b from-orange-400 to-slate-300"></div>
-                  )}
-                </div>
-
-                {/* Beneficiárias */}
-                {totalBeneficiarias > 0 && (
-                  <div className="mt-16 relative">
-                    {/* Linha horizontal conectando todas as beneficiárias */}
-                    <div
-                      className="absolute top-0 left-0 right-0 h-1 bg-slate-300"
-                      style={{
-                        width: `${Math.max(totalBeneficiarias * 280, 280)}px`,
-                        left: '50%',
-                        transform: 'translateX(-50%)'
-                      }}
-                    ></div>
-
-                    <div className="flex gap-8 justify-center pt-1">
-                      {beneficiarias.map((ben, index) => (
-                        <div key={ben.id} className="relative flex flex-col items-center">
-                          {/* Linha vertical para cada beneficiária */}
-                          <div className="w-1 h-12 bg-slate-300"></div>
-
-                          {/* Card da beneficiária */}
-                          <div className="bg-white rounded-xl p-5 shadow-lg border-2 border-slate-200 min-w-[250px] hover:border-[#00A3E0] hover:shadow-xl transition-all transform hover:scale-105 relative group">
-                            {/* Badge de porcentagem na aresta */}
-                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#00A3E0] text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                              {ben.percentual_rateio}%
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                                <Home size={24} className="text-slate-500 group-hover:text-[#00A3E0] transition-colors" />
-                              </div>
-                              <div>
-                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">BENEFICIÁRIA</span>
-                                <h5 className="font-bold text-slate-800 mt-1">UC {ben.codigo_uc}</h5>
-                              </div>
-                            </div>
-
-                            {ben.nome_titular && (
-                              <p className="text-sm text-slate-600 mt-3 truncate" title={ben.nome_titular}>
-                                {ben.nome_titular}
-                              </p>
-                            )}
-
-                            <p className="text-xs text-slate-400 mt-1 truncate" title={ben.endereco}>
-                              {ben.endereco}
-                            </p>
-
-                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                              <div className="flex items-center gap-1 text-[#00A3E0]">
-                                <Share2 size={14} />
-                                <span className="text-xs font-medium">Recebe</span>
-                              </div>
-                              <span className="text-lg font-bold text-slate-800">{ben.percentual_rateio}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sem beneficiárias */}
-                {totalBeneficiarias === 0 && (
-                  <div className="mt-12 text-center text-slate-500 bg-white p-8 rounded-xl border-2 border-dashed border-slate-300">
-                    <Home size={40} className="mx-auto mb-3 text-slate-300" />
-                    <p className="font-medium">Nenhuma beneficiária cadastrada</p>
-                    <p className="text-sm text-slate-400 mt-1">Esta usina não possui rateio de créditos</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Footer com legenda */}
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gradient-to-br from-orange-500 to-amber-500 rounded"></div>
-                <span className="text-slate-600">Usina Geradora</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-white border-2 border-slate-300 rounded"></div>
-                <span className="text-slate-600">Beneficiária</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-4 bg-[#00A3E0] rounded-full text-white text-[10px] flex items-center justify-center font-bold">%</div>
-                <span className="text-slate-600">Percentual de rateio</span>
-              </div>
-            </div>
-            <p className="text-slate-400">{usina.empresa_nome}</p>
+          {/* Footer */}
+          <div className={`px-6 py-3 border-t ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'} flex items-center justify-between text-sm`}>
+            <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>
+              Visualização interativa com React Flow
+            </p>
+            <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>{usina.empresa_nome}</p>
           </div>
         </div>
       </div>
