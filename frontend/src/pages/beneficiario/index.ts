@@ -1,0 +1,1 @@
+export { DashboardBeneficiario } from './DashboardBeneficiario';

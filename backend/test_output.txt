@@ -1,0 +1,747 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.1, pluggy-1.6.0
+rootdir: C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend
+plugins: anyio-4.11.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+tests\test_leads.py F                                                    [100%]
+
+================================== FAILURES ===================================
+_________________ TestLeadsCaptura.test_capturar_lead_valido __________________
+tests\test_leads.py:13: in test_capturar_lead_valido
+    response = client.post("/api/leads/captura", json={
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\testclient.py:552: in post
+    return super().post(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:1144: in post
+    return self.request(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\testclient.py:451: in request
+    return super().request(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\anyio\from_thread.py:321: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\anyio\from_thread.py:252: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\applications.py:1133: in __call__
+    await super().__call__(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py:123: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py:109: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py:387: in app
+    raw_response = await run_endpoint_function(
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py:288: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+leads\router.py:39: in capturar_lead
+    return await service.criar(data=data.model_dump())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+leads\service.py:99: in criar
+    result = self.supabase.table("leads").insert(lead_data).execute()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\postgrest\_sync\request_builder.py:53: in execute
+    raise APIError(dict(json_obj))
+E   postgrest.exceptions.APIError: {'message': 'new row violates row-level security policy for table "leads"', 'code': '42501', 'hint': None, 'details': None}
+---------------------------- Captured stderr call -----------------------------
+2025-12-03 01:55:47,591 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-12-03 01:55:48,231 - httpcore.connection - DEBUG - connect_tcp.started host='supabase.midwestengenharia.com.br' port=443 local_address=None timeout=120 socket_options=None
+2025-12-03 01:55:48,299 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x000001B62BC51FD0>
+2025-12-03 01:55:48,299 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x000001B62BC4D590> server_hostname='supabase.midwestengenharia.com.br' timeout=120
+2025-12-03 01:55:48,375 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x000001B62BC074D0>
+2025-12-03 01:55:48,377 - httpcore.http2 - DEBUG - send_connection_init.started request=<Request [b'GET']>
+2025-12-03 01:55:48,377 - httpcore.http2 - DEBUG - send_connection_init.complete
+2025-12-03 01:55:48,377 - httpcore.http2 - DEBUG - send_request_headers.started request=<Request [b'GET']> stream_id=1
+2025-12-03 01:55:48,377 - hpack.hpack - DEBUG - Adding (b':method', b'GET') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,377 - hpack.hpack - DEBUG - Encoding 2 with 7 bits
+2025-12-03 01:55:48,377 - hpack.hpack - DEBUG - Adding (b':authority', b'supabase.midwestengenharia.com.br') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,377 - hpack.hpack - DEBUG - Encoding 1 with 6 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 23 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b':scheme', b'https') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 7 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b':path', b'/rest/v1/leads?select=id%2Cstatus&cpf=eq.529.982.247-25') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 4 with 6 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 40 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b'accept', b'*/*') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 19 with 6 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 3 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b'accept-encoding', b'gzip, deflate') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 16 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b'user-agent', b'python-httpx/0.28.1') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 58 with 6 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 14 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Adding (b'x-client-info', b'supabase-py/2.24.0') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 10 with 7 bits
+2025-12-03 01:55:48,378 - hpack.hpack - DEBUG - Encoding 13 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Adding (b'apikey', b'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 5 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 135 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Adding (b'authorization', b'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:True, huffman:True
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 23 with 4 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 140 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Adding (b'accept-profile', b'public') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 10 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 5 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Adding (b'content-profile', b'public') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 11 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoding 5 with 7 bits
+2025-12-03 01:55:48,379 - hpack.hpack - DEBUG - Encoded header block to b'\x82A\x97E\xb5\x8e1\xa0\xab\xd2i<\x15\t-S\x16\xa9\xc7a\x86\xb9\x0fJ\xf1\xd9\x87D\xa8b\xc2\xa1,w\x0b\x14\x14r#\xfcAh)\x13\x01\xa4TW\x90\x91\xa6\xd4|\x12\xb9`/e\xdb\x13\xeb\xbe\xf0\x97\x13N\xac&\xffS\x83\xf9c\xe7\x90z\x8e\xaf\xd2g=KN\x94\xd7\xe5\x80.\'\x97\x0f@\x8a\xf2\xb1(1jJ\xc6\xaaS\xff\x8dE\xb5\x8e1\xa0\xabW\xe9\x81.&\x97\x07@\x85\x1df\xea__\xff\x08/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf\x1f\x08\xff\r\xbaQ\xd8[\x14/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf@\x8a\x19\x08Z\xd2\xb5v\x1eSP_\x85\xae\xd8\xe81?@\x8b!\xeaIjJ\xd5\xd8yMA\x7f\x85\xae\xd8\xe81?'
+2025-12-03 01:55:48,380 - httpcore.http2 - DEBUG - send_request_headers.complete
+2025-12-03 01:55:48,380 - httpcore.http2 - DEBUG - send_request_body.started request=<Request [b'GET']> stream_id=1
+2025-12-03 01:55:48,380 - httpcore.http2 - DEBUG - send_request_body.complete
+2025-12-03 01:55:48,380 - httpcore.http2 - DEBUG - receive_response_headers.started request=<Request [b'GET']> stream_id=1
+2025-12-03 01:55:48,414 - hpack.table - DEBUG - Resizing header table to 4096 from 4096
+2025-12-03 01:55:48,414 - httpcore.http2 - DEBUG - receive_remote_settings.started
+2025-12-03 01:55:48,414 - httpcore.http2 - DEBUG - receive_remote_settings.complete return_value=<RemoteSettingsChanged changed_settings:{ChangedSetting(setting=5, original_value=16384, new_value=1048576), ChangedSetting(setting=3, original_value=None, new_value=250), ChangedSetting(setting=6, original_value=None, new_value=1048896), ChangedSetting(setting=1, original_value=4096, new_value=4096), ChangedSetting(setting=4, original_value=65535, new_value=1048576)}>
+2025-12-03 01:55:48,482 - hpack.hpack - DEBUG - Decoding b'?\xe1\x1f\x88T\x01*@\x85\x1d\tY\x1d\xc9\x91\x9d\x98?\x9b\x8d4\xcf\xf3\xf6\xa5#\x80M\xbe \x00\x1f]\xa2b\x82\x8eD\x7f\x84\xaeX\x0b\xd9v\xc4\xfa\xef\xbc%\xc4\xd3\xab\t\xbf\x84\x16\x82\x910\x1aEEy\t\x1amG@\x8b!\xeaIjJ\xd5\xd8yMA\x7f\x85\xae\xd8\xe81?^\x03*/*_\x96\x1du\xd0b\r&=LtA\xea\xfbP\x93\x8e\xc4\x150Z\x99V{a\x96\xe4Y>\x94\x03*_)\x14\x10\x04\xda\x80j\xe3m\xdc\x0b\xcab\xd1\xbfv\x8c\xac\xe8L\xd6\x15\t`"\\K\x84_{\x8b\x84\x84-i[\x05D<\x86\xaao|\x88\xeaz\xa6`K\xbc\xb8\x7f@\x8f\xf2\xb7S\xd52\xd5\xd8\x7f>\x96\xa0i-D\xf5\x012@\x91\xf2\xb7S\xd52\xd6\xd6\x84\xd8Q\xd2\xb5\x03Ij\'\xaf\x0259'
+2025-12-03 01:55:48,482 - hpack.hpack - DEBUG - Decoded 4096, consumed 3 bytes
+2025-12-03 01:55:48,483 - hpack.table - DEBUG - Resizing header table to 4096 from 4096
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 8, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded (b':status', b'200'), consumed 1
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 20, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 1, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded (b'access-control-allow-origin', <memory at 0x000001B62BA5E380>), total consumed 3 bytes, indexed True
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 5, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 17, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded (b'alt-svc', b'h3=":443"; ma=2592000'), total consumed 25 bytes, indexed True
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 29, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 34, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded (b'content-location', b'/leads?cpf=eq.529.982.247-25&select=id%2Cstatus'), total consumed 36 bytes, indexed True
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 11, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded 5, consumed 1 bytes
+2025-12-03 01:55:48,483 - hpack.hpack - DEBUG - Decoded (b'content-profile', b'public'), total consumed 19 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 30, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 3, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'content-range', <memory at 0x000001B62BA5E500>), total consumed 5 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 31, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 22, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'content-type', b'application/json; charset=utf-8'), total consumed 24 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 33, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 22, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), total consumed 24 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 54, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 12, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'server', b'postgrest/12.2.12'), total consumed 14 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 59, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 11, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'vary', b'Accept-Encoding'), total consumed 13 bytes, indexed True
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 60, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded 8, consumed 1 bytes
+2025-12-03 01:55:48,484 - hpack.hpack - DEBUG - Decoded (b'via', b'kong/2.8.1'), total consumed 10 bytes, indexed True
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded 15, consumed 1 bytes
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded 1, consumed 1 bytes
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded (b'x-kong-proxy-latency', <memory at 0x000001B62BA5DF00>), total consumed 19 bytes, indexed True
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded 17, consumed 1 bytes
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded 2, consumed 1 bytes
+2025-12-03 01:55:48,485 - hpack.hpack - DEBUG - Decoded (b'x-kong-upstream-latency', <memory at 0x000001B62BA5E680>), total consumed 22 bytes, indexed True
+2025-12-03 01:55:48,485 - httpcore.http2 - DEBUG - receive_response_headers.complete return_value=(200, [(b'access-control-allow-origin', b'*'), (b'alt-svc', b'h3=":443"; ma=2592000'), (b'content-location', b'/leads?cpf=eq.529.982.247-25&select=id%2Cstatus'), (b'content-profile', b'public'), (b'content-range', b'*/*'), (b'content-type', b'application/json; charset=utf-8'), (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), (b'server', b'postgrest/12.2.12'), (b'vary', b'Accept-Encoding'), (b'via', b'kong/2.8.1'), (b'x-kong-proxy-latency', b'2'), (b'x-kong-upstream-latency', b'59')])
+2025-12-03 01:55:48,486 - httpx - INFO - HTTP Request: GET https://supabase.midwestengenharia.com.br/rest/v1/leads?select=id%2Cstatus&cpf=eq.529.982.247-25 "HTTP/2 200 OK"
+2025-12-03 01:55:48,486 - httpcore.http2 - DEBUG - receive_response_body.started request=<Request [b'GET']> stream_id=1
+2025-12-03 01:55:48,486 - httpcore.http2 - DEBUG - receive_response_body.complete
+2025-12-03 01:55:48,486 - httpcore.http2 - DEBUG - response_closed.started stream_id=1
+2025-12-03 01:55:48,486 - httpcore.http2 - DEBUG - response_closed.complete
+2025-12-03 01:55:48,487 - httpcore.http2 - DEBUG - send_request_headers.started request=<Request [b'POST']> stream_id=3
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b':method', b'POST') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 3 with 7 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b':authority', b'supabase.midwestengenharia.com.br') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 69 with 7 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b':scheme', b'https') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 7 with 7 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b':path', b'/rest/v1/leads') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 4 with 6 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 10 with 7 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b'accept', b'*/*') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Encoding 68 with 7 bits
+2025-12-03 01:55:48,487 - hpack.hpack - DEBUG - Adding (b'accept-encoding', b'gzip, deflate') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 16 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'user-agent', b'python-httpx/0.28.1') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 67 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'prefer', b'return=representation') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 5 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 15 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'x-client-info', b'supabase-py/2.24.0') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 67 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'apikey', b'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 66 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'authorization', b'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:True, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 23 with 4 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 140 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'accept-profile', b'public') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Encoding 65 with 7 bits
+2025-12-03 01:55:48,488 - hpack.hpack - DEBUG - Adding (b'content-profile', b'public') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoding 64 with 7 bits
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Adding (b'content-length', b'211') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoding 28 with 6 bits
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoding 2 with 7 bits
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Adding (b'content-type', b'application/json') to the header table, sensitive:False, huffman:True
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoding 31 with 6 bits
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoding 11 with 7 bits
+2025-12-03 01:55:48,489 - hpack.hpack - DEBUG - Encoded header block to b'\x83\xc5\x87D\x8ab\xc2\xa1,w\x0b\x14\x14r#\xc4\x90\xc3@\x85\xae\xc2\xca[?\x8f\xb0\xa9\xb6\xca\xa0\xb0\xb5\xd8T\x16\xa4\x8d&=_\xc3\xc2\x1f\x08\xff\r\xbaQ\xd8[\x14/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf\xc1\xc0\\\x82\x10C_\x8b\x1du\xd0b\r&=LtA\xea'
+2025-12-03 01:55:48,489 - httpcore.http2 - DEBUG - send_request_headers.complete
+2025-12-03 01:55:48,489 - httpcore.http2 - DEBUG - send_request_body.started request=<Request [b'POST']> stream_id=3
+2025-12-03 01:55:48,490 - httpcore.http2 - DEBUG - send_request_body.complete
+2025-12-03 01:55:48,490 - httpcore.http2 - DEBUG - receive_response_headers.started request=<Request [b'POST']> stream_id=3
+2025-12-03 01:55:48,541 - hpack.hpack - DEBUG - Decoding b'N\x82h\x01\xca\xc9Z\x83\x9b\xd9\xab\xc6\xc5\xc4\xc3\xc2}\x85\xbaQ\xd8[?\x7f\x03\x011\x7f\x03\x0210'
+2025-12-03 01:55:48,541 - hpack.hpack - DEBUG - Decoded 14, consumed 1 bytes
+2025-12-03 01:55:48,541 - hpack.hpack - DEBUG - Decoded 2, consumed 1 bytes
+2025-12-03 01:55:48,541 - hpack.hpack - DEBUG - Decoded (b':status', b'401'), total consumed 4 bytes, indexed True
+2025-12-03 01:55:48,541 - hpack.hpack - DEBUG - Decoded 74, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'access-control-allow-origin', <memory at 0x000001B62BA5E380>), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 73, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'alt-svc', b'h3=":443"; ma=2592000'), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 26, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 3, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'content-encoding', b'gzip'), total consumed 5 bytes, indexed True
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 70, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'content-type', b'application/json; charset=utf-8'), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 69, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 68, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'server', b'postgrest/12.2.12'), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 67, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'vary', b'Accept-Encoding'), consumed 1
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded 66, consumed 1 bytes
+2025-12-03 01:55:48,542 - hpack.hpack - DEBUG - Decoded (b'via', b'kong/2.8.1'), consumed 1
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 61, consumed 1 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 5, consumed 1 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded (b'www-authenticate', b'Bearer'), total consumed 7 bytes, indexed True
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 66, consumed 2 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 1, consumed 1 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded (b'x-kong-proxy-latency', <memory at 0x000001B62BA5E8C0>), total consumed 4 bytes, indexed True
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 66, consumed 2 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded 2, consumed 1 bytes
+2025-12-03 01:55:48,543 - hpack.hpack - DEBUG - Decoded (b'x-kong-upstream-latency', <memory at 0x000001B62BA5E740>), total consumed 5 bytes, indexed True
+2025-12-03 01:55:48,543 - httpcore.http2 - DEBUG - receive_response_headers.complete return_value=(401, [(b'access-control-allow-origin', b'*'), (b'alt-svc', b'h3=":443"; ma=2592000'), (b'content-encoding', b'gzip'), (b'content-type', b'application/json; charset=utf-8'), (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), (b'server', b'postgrest/12.2.12'), (b'vary', b'Accept-Encoding'), (b'via', b'kong/2.8.1'), (b'www-authenticate', b'Bearer'), (b'x-kong-proxy-latency', b'1'), (b'x-kong-upstream-latency', b'10')])
+2025-12-03 01:55:48,543 - httpx - INFO - HTTP Request: POST https://supabase.midwestengenharia.com.br/rest/v1/leads "HTTP/2 401 Unauthorized"
+2025-12-03 01:55:48,544 - httpcore.http2 - DEBUG - receive_response_body.started request=<Request [b'POST']> stream_id=3
+2025-12-03 01:55:48,544 - httpcore.http2 - DEBUG - receive_response_body.complete
+2025-12-03 01:55:48,544 - httpcore.http2 - DEBUG - response_closed.started stream_id=3
+2025-12-03 01:55:48,544 - httpcore.http2 - DEBUG - response_closed.complete
+2025-12-03 01:55:48,544 - backend.main - ERROR - Erro não tratado: {'message': 'new row violates row-level security policy for table "leads"', 'code': '42501', 'hint': None, 'details': None}
+Traceback (most recent call last):
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 109, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 387, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 288, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\router.py", line 39, in capturar_lead
+    return await service.criar(data=data.model_dump())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\service.py", line 99, in criar
+    result = self.supabase.table("leads").insert(lead_data).execute()
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\postgrest\_sync\request_builder.py", line 53, in execute
+    raise APIError(dict(json_obj))
+postgrest.exceptions.APIError: {'message': 'new row violates row-level security policy for table "leads"', 'code': '42501', 'hint': None, 'details': None}
+------------------------------ Captured log call ------------------------------
+DEBUG    asyncio:proactor_events.py:633 Using proactor: IocpProactor
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.started host='supabase.midwestengenharia.com.br' port=443 local_address=None timeout=120 socket_options=None
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x000001B62BC51FD0>
+DEBUG    httpcore.connection:_trace.py:47 start_tls.started ssl_context=<ssl.SSLContext object at 0x000001B62BC4D590> server_hostname='supabase.midwestengenharia.com.br' timeout=120
+DEBUG    httpcore.connection:_trace.py:47 start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x000001B62BC074D0>
+DEBUG    httpcore.http2:_trace.py:47 send_connection_init.started request=<Request [b'GET']>
+DEBUG    httpcore.http2:_trace.py:47 send_connection_init.complete
+DEBUG    httpcore.http2:_trace.py:47 send_request_headers.started request=<Request [b'GET']> stream_id=1
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':method', b'GET') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 2 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':authority', b'supabase.midwestengenharia.com.br') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 1 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 23 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':scheme', b'https') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 7 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':path', b'/rest/v1/leads?select=id%2Cstatus&cpf=eq.529.982.247-25') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 4 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 40 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept', b'*/*') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 19 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 3 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept-encoding', b'gzip, deflate') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 16 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'user-agent', b'python-httpx/0.28.1') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 58 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 14 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'x-client-info', b'supabase-py/2.24.0') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 10 with 7 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 13 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'apikey', b'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 5 with 7 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 135 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'authorization', b'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:True, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 23 with 4 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 140 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept-profile', b'public') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 10 with 7 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 5 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'content-profile', b'public') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 11 with 7 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 5 with 7 bits
+DEBUG    hpack.hpack:hpack.py:280 Encoded header block to b'\x82A\x97E\xb5\x8e1\xa0\xab\xd2i<\x15\t-S\x16\xa9\xc7a\x86\xb9\x0fJ\xf1\xd9\x87D\xa8b\xc2\xa1,w\x0b\x14\x14r#\xfcAh)\x13\x01\xa4TW\x90\x91\xa6\xd4|\x12\xb9`/e\xdb\x13\xeb\xbe\xf0\x97\x13N\xac&\xffS\x83\xf9c\xe7\x90z\x8e\xaf\xd2g=KN\x94\xd7\xe5\x80.\'\x97\x0f@\x8a\xf2\xb1(1jJ\xc6\xaaS\xff\x8dE\xb5\x8e1\xa0\xabW\xe9\x81.&\x97\x07@\x85\x1df\xea__\xff\x08/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf\x1f\x08\xff\r\xbaQ\xd8[\x14/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf@\x8a\x19\x08Z\xd2\xb5v\x1eSP_\x85\xae\xd8\xe81?@\x8b!\xeaIjJ\xd5\xd8yMA\x7f\x85\xae\xd8\xe81?'
+DEBUG    httpcore.http2:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http2:_trace.py:47 send_request_body.started request=<Request [b'GET']> stream_id=1
+DEBUG    httpcore.http2:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http2:_trace.py:47 receive_response_headers.started request=<Request [b'GET']> stream_id=1
+DEBUG    hpack.table:table.py:201 Resizing header table to 4096 from 4096
+DEBUG    httpcore.http2:_trace.py:47 receive_remote_settings.started
+DEBUG    httpcore.http2:_trace.py:47 receive_remote_settings.complete return_value=<RemoteSettingsChanged changed_settings:{ChangedSetting(setting=5, original_value=16384, new_value=1048576), ChangedSetting(setting=3, original_value=None, new_value=250), ChangedSetting(setting=6, original_value=None, new_value=1048896), ChangedSetting(setting=1, original_value=4096, new_value=4096), ChangedSetting(setting=4, original_value=65535, new_value=1048576)}>
+DEBUG    hpack.hpack:hpack.py:474 Decoding b'?\xe1\x1f\x88T\x01*@\x85\x1d\tY\x1d\xc9\x91\x9d\x98?\x9b\x8d4\xcf\xf3\xf6\xa5#\x80M\xbe \x00\x1f]\xa2b\x82\x8eD\x7f\x84\xaeX\x0b\xd9v\xc4\xfa\xef\xbc%\xc4\xd3\xab\t\xbf\x84\x16\x82\x910\x1aEEy\t\x1amG@\x8b!\xeaIjJ\xd5\xd8yMA\x7f\x85\xae\xd8\xe81?^\x03*/*_\x96\x1du\xd0b\r&=LtA\xea\xfbP\x93\x8e\xc4\x150Z\x99V{a\x96\xe4Y>\x94\x03*_)\x14\x10\x04\xda\x80j\xe3m\xdc\x0b\xcab\xd1\xbfv\x8c\xac\xe8L\xd6\x15\t`"\\K\x84_{\x8b\x84\x84-i[\x05D<\x86\xaao|\x88\xeaz\xa6`K\xbc\xb8\x7f@\x8f\xf2\xb7S\xd52\xd5\xd8\x7f>\x96\xa0i-D\xf5\x012@\x91\xf2\xb7S\xd52\xd6\xd6\x84\xd8Q\xd2\xb5\x03Ij\'\xaf\x0259'
+DEBUG    hpack.hpack:hpack.py:113 Decoded 4096, consumed 3 bytes
+DEBUG    hpack.table:table.py:201 Resizing header table to 4096 from 4096
+DEBUG    hpack.hpack:hpack.py:113 Decoded 8, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b':status', b'200'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 20, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 1, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'access-control-allow-origin', <memory at 0x000001B62BA5E380>), total consumed 3 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 5, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 17, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'alt-svc', b'h3=":443"; ma=2592000'), total consumed 25 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 29, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 34, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'content-location', b'/leads?cpf=eq.529.982.247-25&select=id%2Cstatus'), total consumed 36 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 11, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 5, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'content-profile', b'public'), total consumed 19 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 30, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 3, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'content-range', <memory at 0x000001B62BA5E500>), total consumed 5 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 31, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 22, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'content-type', b'application/json; charset=utf-8'), total consumed 24 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 33, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 22, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), total consumed 24 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 54, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 12, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'server', b'postgrest/12.2.12'), total consumed 14 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 59, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 11, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'vary', b'Accept-Encoding'), total consumed 13 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 60, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 8, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'via', b'kong/2.8.1'), total consumed 10 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 15, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 1, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'x-kong-proxy-latency', <memory at 0x000001B62BA5DF00>), total consumed 19 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 17, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 2, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'x-kong-upstream-latency', <memory at 0x000001B62BA5E680>), total consumed 22 bytes, indexed True
+DEBUG    httpcore.http2:_trace.py:47 receive_response_headers.complete return_value=(200, [(b'access-control-allow-origin', b'*'), (b'alt-svc', b'h3=":443"; ma=2592000'), (b'content-location', b'/leads?cpf=eq.529.982.247-25&select=id%2Cstatus'), (b'content-profile', b'public'), (b'content-range', b'*/*'), (b'content-type', b'application/json; charset=utf-8'), (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), (b'server', b'postgrest/12.2.12'), (b'vary', b'Accept-Encoding'), (b'via', b'kong/2.8.1'), (b'x-kong-proxy-latency', b'2'), (b'x-kong-upstream-latency', b'59')])
+INFO     httpx:_client.py:1025 HTTP Request: GET https://supabase.midwestengenharia.com.br/rest/v1/leads?select=id%2Cstatus&cpf=eq.529.982.247-25 "HTTP/2 200 OK"
+DEBUG    httpcore.http2:_trace.py:47 receive_response_body.started request=<Request [b'GET']> stream_id=1
+DEBUG    httpcore.http2:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http2:_trace.py:47 response_closed.started stream_id=1
+DEBUG    httpcore.http2:_trace.py:47 response_closed.complete
+DEBUG    httpcore.http2:_trace.py:47 send_request_headers.started request=<Request [b'POST']> stream_id=3
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':method', b'POST') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 3 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':authority', b'supabase.midwestengenharia.com.br') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 69 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':scheme', b'https') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 7 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b':path', b'/rest/v1/leads') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 4 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 10 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept', b'*/*') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 68 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept-encoding', b'gzip, deflate') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 16 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'user-agent', b'python-httpx/0.28.1') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 67 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'prefer', b'return=representation') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 5 with 7 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 15 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'x-client-info', b'supabase-py/2.24.0') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 67 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'apikey', b'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 66 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'authorization', b'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MzczMjA0MCwiZXhwIjo0OTE5NDA1NjQwLCJyb2xlIjoiYW5vbiJ9.Zg31ayaC_SQOLowrpPMD26oem-25jSLlu2XQmRPoCx4') to the header table, sensitive:True, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 23 with 4 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 140 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'accept-profile', b'public') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 65 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'content-profile', b'public') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 64 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'content-length', b'211') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 28 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 2 with 7 bits
+DEBUG    hpack.hpack:hpack.py:288 Adding (b'content-type', b'application/json') to the header table, sensitive:False, huffman:True
+DEBUG    hpack.hpack:hpack.py:53 Encoding 31 with 6 bits
+DEBUG    hpack.hpack:hpack.py:53 Encoding 11 with 7 bits
+DEBUG    hpack.hpack:hpack.py:280 Encoded header block to b'\x83\xc5\x87D\x8ab\xc2\xa1,w\x0b\x14\x14r#\xc4\x90\xc3@\x85\xae\xc2\xca[?\x8f\xb0\xa9\xb6\xca\xa0\xb0\xb5\xd8T\x16\xa4\x8d&=_\xc3\xc2\x1f\x08\xff\r\xbaQ\xd8[\x14/\xac\xa0/\xe4&\xd4l\xb9\xb8\x87a\xb3\xde\xcb<x\x88mF\xcb\x93\x87\xbc\x81\xd2l\xaf\xae_Yk#:\r\xa8\xd9}\xc9\xf9v~t\xe1\xf7\xfb\xbb"2SD\xf2^\xc8\xe6\x8d\xe4\x16\x8fd\xf7\xa3\xa4 \xd1{\xc1\xbf\x7f\'\xf1\x93\xa1\xc1\xab~\x06\xf4\xdf\x84:zl\xf1\x9e\xf6_Q\x8b\xcd\x19:\x1c\xdc\xf97\xde3e}\x7f\xd9\x99\x08\xfd\x0e\xf4[\xb6j\xce\x7f\x16W\xafE\xf18r\xd2\xb0\x9b\xe9\xbb=\x16\x8b\xf3e;u\x9e\xf7\x96\xbf\xc1\xc0\\\x82\x10C_\x8b\x1du\xd0b\r&=LtA\xea'
+DEBUG    httpcore.http2:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http2:_trace.py:47 send_request_body.started request=<Request [b'POST']> stream_id=3
+DEBUG    httpcore.http2:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http2:_trace.py:47 receive_response_headers.started request=<Request [b'POST']> stream_id=3
+DEBUG    hpack.hpack:hpack.py:474 Decoding b'N\x82h\x01\xca\xc9Z\x83\x9b\xd9\xab\xc6\xc5\xc4\xc3\xc2}\x85\xbaQ\xd8[?\x7f\x03\x011\x7f\x03\x0210'
+DEBUG    hpack.hpack:hpack.py:113 Decoded 14, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 2, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b':status', b'401'), total consumed 4 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 74, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'access-control-allow-origin', <memory at 0x000001B62BA5E380>), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 73, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'alt-svc', b'h3=":443"; ma=2592000'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 26, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 3, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'content-encoding', b'gzip'), total consumed 5 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 70, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'content-type', b'application/json; charset=utf-8'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 69, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 68, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'server', b'postgrest/12.2.12'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 67, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'vary', b'Accept-Encoding'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 66, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:569 Decoded (b'via', b'kong/2.8.1'), consumed 1
+DEBUG    hpack.hpack:hpack.py:113 Decoded 61, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 5, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'www-authenticate', b'Bearer'), total consumed 7 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 66, consumed 2 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 1, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'x-kong-proxy-latency', <memory at 0x000001B62BA5E8C0>), total consumed 4 bytes, indexed True
+DEBUG    hpack.hpack:hpack.py:113 Decoded 66, consumed 2 bytes
+DEBUG    hpack.hpack:hpack.py:113 Decoded 2, consumed 1 bytes
+DEBUG    hpack.hpack:hpack.py:647 Decoded (b'x-kong-upstream-latency', <memory at 0x000001B62BA5E740>), total consumed 5 bytes, indexed True
+DEBUG    httpcore.http2:_trace.py:47 receive_response_headers.complete return_value=(401, [(b'access-control-allow-origin', b'*'), (b'alt-svc', b'h3=":443"; ma=2592000'), (b'content-encoding', b'gzip'), (b'content-type', b'application/json; charset=utf-8'), (b'date', b'Wed, 03 Dec 2025 04:55:18 GMT'), (b'server', b'postgrest/12.2.12'), (b'vary', b'Accept-Encoding'), (b'via', b'kong/2.8.1'), (b'www-authenticate', b'Bearer'), (b'x-kong-proxy-latency', b'1'), (b'x-kong-upstream-latency', b'10')])
+INFO     httpx:_client.py:1025 HTTP Request: POST https://supabase.midwestengenharia.com.br/rest/v1/leads "HTTP/2 401 Unauthorized"
+DEBUG    httpcore.http2:_trace.py:47 receive_response_body.started request=<Request [b'POST']> stream_id=3
+DEBUG    httpcore.http2:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http2:_trace.py:47 response_closed.started stream_id=3
+DEBUG    httpcore.http2:_trace.py:47 response_closed.complete
+ERROR    backend.main:main.py:127 Erro não tratado: {'message': 'new row violates row-level security policy for table "leads"', 'code': '42501', 'hint': None, 'details': None}
+Traceback (most recent call last):
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 109, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 387, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\routing.py", line 288, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\router.py", line 39, in capturar_lead
+    return await service.criar(data=data.model_dump())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\service.py", line 99, in criar
+    result = self.supabase.table("leads").insert(lead_data).execute()
+  File "C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\postgrest\_sync\request_builder.py", line 53, in execute
+    raise APIError(dict(json_obj))
+postgrest.exceptions.APIError: {'message': 'new row violates row-level security policy for table "leads"', 'code': '42501', 'hint': None, 'details': None}
+============================== warnings summary ===============================
+config.py:10
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\config.py:10: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Settings(BaseSettings):
+
+auth\schemas.py:134
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\auth\schemas.py:134: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserResponse(BaseModel):
+
+usuarios\schemas.py:102
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usuarios\schemas.py:102: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PerfilUsuarioResponse(BaseModel):
+
+usuarios\schemas.py:114
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usuarios\schemas.py:114: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsuarioResponse(BaseModel):
+
+usuarios\schemas.py:144
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usuarios\schemas.py:144: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsuarioResumoResponse(BaseModel):
+
+ucs\schemas.py:63
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\ucs\schemas.py:63: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UCResponse(BaseModel):
+
+ucs\schemas.py:132
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\ucs\schemas.py:132: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UCResumoResponse(BaseModel):
+
+usinas\schemas.py:79
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:79: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class EmpresaResumoResponse(BaseModel):
+
+usinas\schemas.py:90
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:90: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UCResumoResponse(BaseModel):
+
+usinas\schemas.py:103
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:103: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class GestorUsinaResponse(BaseModel):
+
+usinas\schemas.py:117
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:117: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BeneficiarioResumoResponse(BaseModel):
+
+usinas\schemas.py:132
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:132: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsinaResponse(BaseModel):
+
+usinas\schemas.py:173
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\usinas\schemas.py:173: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsinaResumoResponse(BaseModel):
+
+beneficiarios\schemas.py:99
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:99: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UCBeneficiarioResponse(BaseModel):
+
+beneficiarios\schemas.py:112
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:112: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsinaResumoResponse(BaseModel):
+
+beneficiarios\schemas.py:122
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:122: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsuarioResumoResponse(BaseModel):
+
+beneficiarios\schemas.py:132
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:132: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ContratoResumoResponse(BaseModel):
+
+beneficiarios\schemas.py:143
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:143: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BeneficiarioResponse(BaseModel):
+
+beneficiarios\schemas.py:189
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:189: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BeneficiarioResumoResponse(BaseModel):
+
+beneficiarios\schemas.py:209
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\beneficiarios\schemas.py:209: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ConviteResponse(BaseModel):
+
+faturas\schemas.py:36
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\faturas\schemas.py:36: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UCFaturaResponse(BaseModel):
+
+faturas\schemas.py:48
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\faturas\schemas.py:48: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FaturaResponse(BaseModel):
+
+faturas\schemas.py:124
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\faturas\schemas.py:124: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FaturaResumoResponse(BaseModel):
+
+faturas\schemas.py:143
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\faturas\schemas.py:143: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class HistoricoGDResponse(BaseModel):
+
+cobrancas\schemas.py:79
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\cobrancas\schemas.py:79: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BeneficiarioCobrancaResponse(BaseModel):
+
+cobrancas\schemas.py:91
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\cobrancas\schemas.py:91: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FaturaCobrancaResponse(BaseModel):
+
+cobrancas\schemas.py:103
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\cobrancas\schemas.py:103: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class CobrancaResponse(BaseModel):
+
+cobrancas\schemas.py:157
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\cobrancas\schemas.py:157: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class CobrancaResumoResponse(BaseModel):
+
+contratos\schemas.py:86
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\contratos\schemas.py:86: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BeneficiarioContratoResponse(BaseModel):
+
+contratos\schemas.py:97
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\contratos\schemas.py:97: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UsinaContratoResponse(BaseModel):
+
+contratos\schemas.py:107
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\contratos\schemas.py:107: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ContratoResponse(BaseModel):
+
+contratos\schemas.py:152
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\contratos\schemas.py:152: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ContratoResumoResponse(BaseModel):
+
+contratos\schemas.py:195
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\contratos\schemas.py:195: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class HistoricoContratoResponse(BaseModel):
+
+saques\schemas.py:84
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\saques\schemas.py:84: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class DadosBancariosResponse(BaseModel):
+
+saques\schemas.py:100
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\saques\schemas.py:100: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SolicitanteResponse(BaseModel):
+
+saques\schemas.py:111
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\saques\schemas.py:111: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SaqueResponse(BaseModel):
+
+saques\schemas.py:153
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\saques\schemas.py:153: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SaqueResumoResponse(BaseModel):
+
+saques\schemas.py:187
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\saques\schemas.py:187: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ComissaoResponse(BaseModel):
+
+leads\schemas.py:101
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\schemas.py:101: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SimulacaoResponse(BaseModel):
+
+leads\schemas.py:121
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\schemas.py:121: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ContatoResponse(BaseModel):
+
+leads\schemas.py:135
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\schemas.py:135: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LeadResponse(BaseModel):
+
+leads\schemas.py:177
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\leads\schemas.py:177: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LeadResumoResponse(BaseModel):
+
+notificacoes\schemas.py:76
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\notificacoes\schemas.py:76: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificacaoResponse(BaseModel):
+
+notificacoes\schemas.py:104
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\notificacoes\schemas.py:104: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificacaoResumoResponse(BaseModel):
+
+notificacoes\schemas.py:126
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\notificacoes\schemas.py:126: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PreferenciasNotificacaoResponse(BaseModel):
+
+notificacoes\schemas.py:147
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\notificacoes\schemas.py:147: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class TemplateNotificacaoResponse(BaseModel):
+
+admin\schemas.py:61
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\admin\schemas.py:61: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ConfiguracaoSistemaResponse(BaseModel):
+
+admin\schemas.py:92
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\admin\schemas.py:92: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LogAuditoriaResponse(BaseModel):
+
+admin\schemas.py:157
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\admin\schemas.py:157: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class BackupResponse(BaseModel):
+
+admin\schemas.py:212
+  C:\Users\ewerton.pria\Documents\Aplicações\PROJETO_ENERGISA\backend\admin\schemas.py:212: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class JobResponse(BaseModel):
+
+tests/test_leads.py::TestLeadsCaptura::test_capturar_lead_valido
+  C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\supabase\_sync\client.py:302: DeprecationWarning: The 'timeout' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+tests/test_leads.py::TestLeadsCaptura::test_capturar_lead_valido
+  C:\Users\ewerton.pria\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\supabase\_sync\client.py:302: DeprecationWarning: The 'verify' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_leads.py::TestLeadsCaptura::test_capturar_lead_valido - pos...
+======================= 1 failed, 52 warnings in 1.89s ========================

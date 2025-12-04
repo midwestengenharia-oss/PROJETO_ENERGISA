@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/Toast';
-import { api, UnidadeConsumidora, Fatura } from '../lib/api';
+import type { UnidadeConsumidora, Fatura } from '../api/types';
 import axios from 'axios';
 import {
   Zap, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Shield,

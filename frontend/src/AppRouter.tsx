@@ -1,31 +1,12 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+/**
+ * AppRouter - Roteador principal da aplicação
+ */
+
+import { BrowserRouter } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
-import { SignIn } from './pages/SignIn';
-import { SignUp } from './pages/SignUp';
-import { LandingPage } from './pages/LandingPage';
-import { SimulationFlow } from './pages/SimulationFlow';
-import App from './App';
+import { AppRoutes } from './routes';
 import { Loader2, Zap } from 'lucide-react';
-
-type AuthPage = 'signin' | 'signup';
-
-function AuthenticatedApp() {
-    const { isAuthenticated } = useAuth();
-    const [authPage, setAuthPage] = useState<AuthPage>('signin');
-
-    // Se nao autenticado, mostra telas de auth
-    if (!isAuthenticated) {
-        if (authPage === 'signin') {
-            return <SignIn onSwitchToSignUp={() => setAuthPage('signup')} />;
-        }
-        return <SignUp onSwitchToSignIn={() => setAuthPage('signin')} />;
-    }
-
-    // Autenticado - mostra o app principal
-    return <App />;
-}
 
 export function AppRouter() {
     const { isLoading } = useAuth();
@@ -46,17 +27,9 @@ export function AppRouter() {
 
     return (
         <BrowserRouter>
-            <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/simular" element={<SimulationFlow />} />
-
-                {/* Auth Routes */}
-                <Route path="/app/*" element={<AuthenticatedApp />} />
-
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <AppRoutes />
         </BrowserRouter>
     );
 }
+
+export default AppRouter;

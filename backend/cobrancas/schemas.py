@@ -1,0 +1,227 @@
+"""
+Cobranças Schemas - Modelos Pydantic para Cobranças
+"""
+
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime, date
+from decimal import Decimal
+from enum import Enum
+
+
+class StatusCobranca(str, Enum):
+    """Status possíveis de uma cobrança"""
+    PENDENTE = "PENDENTE"
+    EMITIDA = "EMITIDA"
+    PAGA = "PAGA"
+    VENCIDA = "VENCIDA"
+    CANCELADA = "CANCELADA"
+    PARCIAL = "PARCIAL"
+
+
+class TipoCobranca(str, Enum):
+    """Tipos de cobrança"""
+    BENEFICIO_GD = "BENEFICIO_GD"
+    ADESAO = "ADESAO"
+    MULTA = "MULTA"
+    OUTROS = "OUTROS"
+
+
+# ========================
+# Request Schemas
+# ========================
+
+class CobrancaCreateRequest(BaseModel):
+    """Criar nova cobrança"""
+    beneficiario_id: int = Field(..., description="ID do beneficiário")
+    fatura_id: Optional[int] = Field(None, description="ID da fatura de referência")
+    tipo: TipoCobranca = Field(default=TipoCobranca.BENEFICIO_GD)
+    valor_energia_injetada: Decimal = Field(..., ge=0, description="Valor da energia injetada")
+    desconto_percentual: Decimal = Field(..., ge=0, le=1, description="Desconto aplicado (0.30 = 30%)")
+    valor_desconto: Optional[Decimal] = Field(None, ge=0)
+    valor_final: Optional[Decimal] = Field(None, ge=0)
+    mes_referencia: int = Field(..., ge=1, le=12)
+    ano_referencia: int = Field(..., ge=2000, le=2100)
+    data_vencimento: date
+    observacoes: Optional[str] = None
+
+
+class CobrancaUpdateRequest(BaseModel):
+    """Atualizar cobrança"""
+    valor_final: Optional[Decimal] = Field(None, ge=0)
+    data_vencimento: Optional[date] = None
+    status: Optional[StatusCobranca] = None
+    observacoes: Optional[str] = None
+
+
+class CobrancaPagamentoRequest(BaseModel):
+    """Registrar pagamento de cobrança"""
+    valor_pago: Decimal = Field(..., ge=0)
+    data_pagamento: date
+    forma_pagamento: Optional[str] = None
+    comprovante: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
+class CobrancaGerarLoteRequest(BaseModel):
+    """Gerar cobranças em lote para uma usina"""
+    usina_id: int
+    mes_referencia: int = Field(..., ge=1, le=12)
+    ano_referencia: int = Field(..., ge=2000, le=2100)
+    data_vencimento: date
+    sobrescrever_existentes: bool = False
+
+
+# ========================
+# Response Schemas
+# ========================
+
+class BeneficiarioCobrancaResponse(BaseModel):
+    """Beneficiário resumido para cobrança"""
+    id: int
+    nome: Optional[str] = None
+    cpf: str
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class FaturaCobrancaResponse(BaseModel):
+    """Fatura resumida para cobrança"""
+    id: int
+    mes_referencia: int
+    ano_referencia: int
+    valor_fatura: Decimal
+    consumo: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CobrancaResponse(BaseModel):
+    """Dados completos da cobrança"""
+    id: int
+    beneficiario_id: int
+    fatura_id: Optional[int] = None
+    usina_id: Optional[int] = None
+
+    # Tipo e referência
+    tipo: str
+    mes_referencia: int
+    ano_referencia: int
+    referencia_formatada: Optional[str] = None
+
+    # Valores
+    valor_energia_injetada: Decimal
+    desconto_percentual: Decimal
+    valor_desconto: Decimal
+    valor_final: Decimal
+
+    # Pagamento
+    valor_pago: Optional[Decimal] = None
+    data_pagamento: Optional[date] = None
+    forma_pagamento: Optional[str] = None
+
+    # Status e datas
+    status: str
+    data_vencimento: date
+    data_emissao: Optional[date] = None
+
+    # PIX/Boleto
+    qr_code_pix: Optional[str] = None
+    codigo_barras: Optional[str] = None
+    link_boleto: Optional[str] = None
+
+    # Observações
+    observacoes: Optional[str] = None
+
+    # Timestamps
+    criado_em: Optional[datetime] = None
+    atualizado_em: Optional[datetime] = None
+
+    # Relacionamentos
+    beneficiario: Optional[BeneficiarioCobrancaResponse] = None
+    fatura: Optional[FaturaCobrancaResponse] = None
+
+    class Config:
+        from_attributes = True
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.referencia_formatada:
+            self.referencia_formatada = f"{self.mes_referencia:02d}/{self.ano_referencia}"
+
+
+class CobrancaResumoResponse(BaseModel):
+    """Resumo da cobrança para listagens"""
+    id: int
+    beneficiario_nome: Optional[str] = None
+    mes_referencia: int
+    ano_referencia: int
+    referencia_formatada: str
+    valor_final: Decimal
+    status: str
+    data_vencimento: date
+
+    class Config:
+        from_attributes = True
+
+
+class CobrancaListResponse(BaseModel):
+    """Lista de cobranças com paginação"""
+    cobrancas: List[CobrancaResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+# ========================
+# Estatísticas
+# ========================
+
+class EstatisticasCobrancaResponse(BaseModel):
+    """Estatísticas de cobranças"""
+    total_cobrancas: int
+    valor_total: Decimal
+    valor_pago: Decimal
+    valor_pendente: Decimal
+    cobrancas_pagas: int
+    cobrancas_pendentes: int
+    cobrancas_vencidas: int
+    taxa_inadimplencia: Decimal
+
+
+class ResumoMensalCobrancaResponse(BaseModel):
+    """Resumo mensal de cobranças"""
+    mes_referencia: int
+    ano_referencia: int
+    referencia_formatada: str
+    total_cobrancas: int
+    valor_total: Decimal
+    valor_pago: Decimal
+    valor_pendente: Decimal
+
+
+# ========================
+# Relatórios
+# ========================
+
+class RelatorioCobrancasRequest(BaseModel):
+    """Parâmetros para relatório de cobranças"""
+    usina_id: Optional[int] = None
+    beneficiario_id: Optional[int] = None
+    mes_referencia: Optional[int] = None
+    ano_referencia: Optional[int] = None
+    status: Optional[StatusCobranca] = None
+    data_inicio: Optional[date] = None
+    data_fim: Optional[date] = None
+    formato: str = Field(default="json", pattern="^(json|csv|pdf)$")
+
+
+class MessageResponse(BaseModel):
+    """Resposta genérica com mensagem"""
+    message: str
+    success: bool = True

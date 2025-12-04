@@ -1,38 +1,32 @@
 version: '3.8'
 
 services:
-  gateway:
-    build: ./gateway
-    container_name: energisa_gateway
-    expose:
-      - "3000"
-    environment:
-      - API_SECRET_KEY=sua_chave_secreta_segura
-      - CRM_SECRET=cnOOJJCg8VK3W11xOo6vhaHd4RNTP-ALT06#cs#I #
-      - GESTOR_URL=http://gestor:8000
-    shm_size: '2gb'
-    restart: always
-
-  gestor:
-    build: ./gestor
-    container_name: energisa_gestor
+  # Backend Unificado (substitui gateway + gestor)
+  backend:
+    build: ./backend
+    container_name: plataforma_gd_backend
     expose:
       - "8000"
     environment:
-      - GATEWAY_URL=http://gateway:3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - ALLOWED_ORIGINS=https://app.midwestengenharia.com.br
     volumes:
-      - ./gestor_dados:/app/dados
-      - ./gestor_faturas:/app/faturas_storage
+      - ./backend/sessions:/app/sessions
+    shm_size: '2gb'
+    restart: always
 
   frontend:
     build:
       context: ./frontend
       args:
         - VITE_API_URL=/api
-        - VITE_GATEWAY_URL=/gateway
-    container_name: energisa_frontend
+    container_name: plataforma_gd_frontend
     ports:
       - "3000:80"
     depends_on:
-      - gestor
-      - gateway
+      - backend

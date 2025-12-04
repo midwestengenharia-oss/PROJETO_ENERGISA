@@ -1,0 +1,1 @@
+export { DashboardProprietario } from './DashboardProprietario';
