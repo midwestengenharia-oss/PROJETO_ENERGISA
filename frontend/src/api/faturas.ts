@@ -71,4 +71,26 @@ export const faturasApi = {
         api.post<Fatura>('/faturas/manual', data),
 };
 
+/**
+ * Helper para download do PDF da fatura a partir do base64
+ */
+export const downloadFaturaPdf = (fatura: Fatura): boolean => {
+    if (!fatura.pdf_base64) {
+        return false;
+    }
+
+    try {
+        const link = document.createElement('a');
+        link.href = `data:application/pdf;base64,${fatura.pdf_base64}`;
+        link.download = `fatura_${fatura.mes_referencia.toString().padStart(2, '0')}_${fatura.ano_referencia}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return true;
+    } catch (error) {
+        console.error('Erro ao baixar PDF:', error);
+        return false;
+    }
+};
+
 export default faturasApi;

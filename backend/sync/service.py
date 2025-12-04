@@ -5,6 +5,7 @@ Executa a cada 10 minutos para manter os dados atualizados
 
 import asyncio
 import logging
+import base64
 from datetime import datetime, timezone
 from typing import Optional
 from decimal import Decimal
@@ -347,6 +348,15 @@ class SyncService:
                     # Remove valores None
                     fatura_data = {k: v for k, v in fatura_data.items() if v is not None}
 
+                    # Verifica se já tem PDF baixado
+                    existing_fatura = self.db.table("faturas").select(
+                        "id, pdf_base64"
+                    ).eq("uc_id", uc_id).eq(
+                        "mes_referencia", mes
+                    ).eq("ano_referencia", ano).execute()
+
+                    has_pdf = existing_fatura.data and existing_fatura.data[0].get("pdf_base64")
+
                     # Upsert (insert ou update)
                     self.db.table("faturas").upsert(
                         fatura_data,
@@ -354,6 +364,32 @@ class SyncService:
                     ).execute()
 
                     faturas_salvas += 1
+
+                    # Baixa PDF se ainda não tem
+                    if not has_pdf and fatura_api.get("numeroFatura"):
+                        try:
+                            pdf_request_data = {
+                                "ano": ano,
+                                "mes": mes,
+                                "numeroFatura": fatura_api.get("numeroFatura")
+                            }
+                            pdf_bytes = await asyncio.to_thread(
+                                svc.download_pdf, uc_data, pdf_request_data
+                            )
+
+                            if pdf_bytes:
+                                pdf_base64_str = base64.b64encode(pdf_bytes).decode('utf-8')
+
+                                self.db.table("faturas").update({
+                                    "pdf_base64": pdf_base64_str,
+                                    "pdf_baixado_em": datetime.now(timezone.utc).isoformat()
+                                }).eq("uc_id", uc_id).eq(
+                                    "mes_referencia", mes
+                                ).eq("ano_referencia", ano).execute()
+
+                                logger.debug(f"      📄 PDF baixado para fatura {mes:02d}/{ano}")
+                        except Exception as pdf_err:
+                            logger.warning(f"      ⚠️ Erro ao baixar PDF {mes:02d}/{ano}: {pdf_err}")
 
                 except Exception as e:
                     logger.warning(f"      ⚠️ Erro ao salvar fatura: {e}")

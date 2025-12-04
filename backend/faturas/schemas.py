@@ -94,6 +94,7 @@ class FaturaResponse(BaseModel):
 
     # PDF
     pdf_path: Optional[str] = None
+    pdf_base64: Optional[str] = None
     pdf_baixado_em: Optional[datetime] = None
 
     # Sincronização

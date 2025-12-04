@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ucsApi } from '../../api/ucs';
-import { faturasApi } from '../../api/faturas';
+import { faturasApi, downloadFaturaPdf } from '../../api/faturas';
 import type { UnidadeConsumidora, Fatura } from '../../api/types';
 import {
     FileText,
@@ -398,12 +398,26 @@ export function FaturasUsuario() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        onClick={() => setFaturaDetalhe(fatura)}
-                                                        className="text-blue-500 hover:text-blue-600 text-sm"
-                                                    >
-                                                        Ver detalhes
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {fatura.pdf_base64 && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    downloadFaturaPdf(fatura);
+                                                                }}
+                                                                className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition"
+                                                                title="Baixar PDF"
+                                                            >
+                                                                <Download size={16} />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => setFaturaDetalhe(fatura)}
+                                                            className="text-blue-500 hover:text-blue-600 text-sm"
+                                                        >
+                                                            Ver detalhes
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -678,17 +692,21 @@ export function FaturasUsuario() {
                             )}
 
                             {/* PDF */}
-                            {faturaDetalhe.pdf_path && (
-                                <a
-                                    href={faturaDetalhe.pdf_path}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                                >
-                                    <Download size={18} />
-                                    Baixar PDF da Fatura
-                                </a>
-                            )}
+                            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                                {faturaDetalhe.pdf_base64 ? (
+                                    <button
+                                        onClick={() => downloadFaturaPdf(faturaDetalhe)}
+                                        className="flex items-center justify-center gap-2 w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                                    >
+                                        <Download size={18} />
+                                        Baixar PDF da Fatura
+                                    </button>
+                                ) : (
+                                    <p className="text-center text-slate-500 dark:text-slate-400 py-3">
+                                        PDF não disponível. Sincronize as faturas.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

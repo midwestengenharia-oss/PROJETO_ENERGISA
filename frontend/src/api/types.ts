@@ -175,6 +175,8 @@ export interface Fatura {
     qr_code_pix_image?: string;  // Imagem base64 do QR Code PIX
     codigo_barras?: string;
     pdf_path?: string;
+    pdf_base64?: string;  // PDF da fatura em base64
+    pdf_baixado_em?: string;
     sincronizado_em?: string;
     criado_em?: string;
     atualizado_em?: string;

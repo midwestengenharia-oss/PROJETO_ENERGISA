@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ucsApi } from '../../api/ucs';
-import { faturasApi } from '../../api/faturas';
+import { faturasApi, downloadFaturaPdf } from '../../api/faturas';
 import type { UnidadeConsumidora, Fatura } from '../../api/types';
 import {
     AreaChart,
@@ -30,7 +30,8 @@ import {
     Calendar,
     CheckCircle,
     XCircle,
-    ChevronRight
+    ChevronRight,
+    Download
 } from 'lucide-react';
 
 // Cores para gráficos
@@ -486,6 +487,9 @@ export function DetalheUC() {
                                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                         Status
                                     </th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Ações
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -523,6 +527,17 @@ export function DetalheUC() {
                                                         <CheckCircle size={12} />
                                                         Paga
                                                     </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                {fatura.pdf_base64 && (
+                                                    <button
+                                                        onClick={() => downloadFaturaPdf(fatura)}
+                                                        className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition"
+                                                        title="Baixar PDF"
+                                                    >
+                                                        <Download size={16} />
+                                                    </button>
                                                 )}
                                             </td>
                                         </tr>
