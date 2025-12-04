@@ -31,6 +31,27 @@ const PERFIL_ROTA_MAP: Record<string, string> = {
 };
 
 /**
+ * Componente wrapper para decidir entre AuthLayout e MainLayout
+ * Resolve o problema de conflito de rotas /app
+ */
+function AppLayoutWrapper() {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    // Se está carregando, mostra loading do AuthLayout
+    if (isLoading) {
+        return <AuthLayout showLoading />;
+    }
+
+    // Se não autenticado, mostra AuthLayout (login/cadastro)
+    if (!isAuthenticated) {
+        return <AuthLayout />;
+    }
+
+    // Se autenticado, mostra MainLayout
+    return <MainLayout />;
+}
+
+/**
  * Componente para redirecionar ao dashboard do perfil ativo
  */
 function RedirectToDashboard() {
@@ -86,14 +107,11 @@ export function AppRoutes() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/simular" element={<SimulationFlow />} />
 
-            {/* ===== Rotas de Autenticação ===== */}
-            <Route path="/app" element={<AuthLayout />}>
+            {/* ===== Rotas /app (Auth + Autenticadas unificadas) ===== */}
+            <Route path="/app" element={<AppLayoutWrapper />}>
+                {/* Rotas de autenticação (quando não logado) */}
                 <Route index element={<SignInPage />} />
                 <Route path="cadastro" element={<SignUpPage />} />
-            </Route>
-
-            {/* ===== Rotas Autenticadas ===== */}
-            <Route path="/app" element={<MainLayout />}>
                 {/* Redirect para dashboard do perfil */}
                 <Route path="dashboard" element={<RedirectToDashboard />} />
 

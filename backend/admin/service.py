@@ -5,7 +5,7 @@ Admin Service - Lógica de negócio para Administração
 from typing import Optional, List, Dict, Any
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from ..core.database import get_supabase
+from ..core.database import get_supabase_admin
 from ..core.exceptions import NotFoundError, ValidationError, ForbiddenError
 
 
@@ -13,7 +13,9 @@ class AdminService:
     """Serviço para administração do sistema"""
 
     def __init__(self):
-        self.supabase = get_supabase()
+        # Usa service_role key para bypass das políticas RLS
+        # Necessário para operações administrativas
+        self.supabase = get_supabase_admin()
 
     async def dashboard_stats(self) -> Dict[str, Any]:
         """Retorna estatísticas gerais do dashboard"""

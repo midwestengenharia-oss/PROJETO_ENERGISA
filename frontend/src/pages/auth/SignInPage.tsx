@@ -2,7 +2,7 @@
  * SignInPage - Página de login
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePerfil } from '../../contexts/PerfilContext';
@@ -12,10 +12,23 @@ import { Loader2, Mail, Lock, Zap, Moon, SunMedium } from 'lucide-react';
 
 export function SignInPage() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, isAuthenticated } = useAuth();
     const { perfilAtivo } = usePerfil();
     const { isDark, toggleTheme } = useTheme();
     const toast = useToast();
+
+    // Redireciona se já estiver autenticado
+    useEffect(() => {
+        if (isAuthenticated) {
+            if (perfilAtivo) {
+                // Mapeia superadmin -> admin
+                const rota = perfilAtivo === 'superadmin' ? 'admin' : perfilAtivo;
+                navigate(`/app/${rota}`, { replace: true });
+            } else {
+                navigate('/app/dashboard', { replace: true });
+            }
+        }
+    }, [isAuthenticated, perfilAtivo, navigate]);
 
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');

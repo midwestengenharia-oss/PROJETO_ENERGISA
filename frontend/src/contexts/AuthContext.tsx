@@ -46,71 +46,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [fetchUser]);
 
+    // Limpa completamente o estado de autenticação
+    const clearAuthState = useCallback(() => {
+        tokenUtils.clearTokens();
+        localStorage.removeItem('plataforma_gd_perfil_ativo');
+        setUsuario(null);
+        setPerfisDisponiveis([]);
+    }, []);
+
     // Login
     const login = useCallback(async (email: string, password: string) => {
-        const response = await authApi.signin({ email, password });
+        try {
+            // Limpa estado anterior antes de tentar login
+            clearAuthState();
 
-        // Salva tokens
-        tokenUtils.saveTokens(
-            response.tokens.access_token,
-            response.tokens.refresh_token,
-            response.tokens.expires_in
-        );
+            const response = await authApi.signin({ email, password });
 
-        // Atualiza estado
-        setUsuario(response.user);
-        setPerfisDisponiveis(response.perfis_disponiveis);
-    }, []);
+            // Salva tokens
+            tokenUtils.saveTokens(
+                response.tokens.access_token,
+                response.tokens.refresh_token,
+                response.tokens.expires_in
+            );
+
+            // Atualiza estado
+            setUsuario(response.user);
+            setPerfisDisponiveis(response.perfis_disponiveis);
+        } catch (error) {
+            // Garante limpeza em caso de erro
+            clearAuthState();
+            throw error;
+        }
+    }, [clearAuthState]);
 
     // Signup
     const signup = useCallback(async (data: SignUpRequest) => {
-        const response = await authApi.signup(data);
+        try {
+            // Limpa estado anterior antes de tentar signup
+            clearAuthState();
 
-        // Salva tokens
-        tokenUtils.saveTokens(
-            response.tokens.access_token,
-            response.tokens.refresh_token,
-            response.tokens.expires_in
-        );
+            const response = await authApi.signup(data);
 
-        // Atualiza estado
-        setUsuario(response.user);
-        setPerfisDisponiveis(response.user.perfis);
-    }, []);
+            // Salva tokens
+            tokenUtils.saveTokens(
+                response.tokens.access_token,
+                response.tokens.refresh_token,
+                response.tokens.expires_in
+            );
+
+            // Atualiza estado
+            setUsuario(response.user);
+            setPerfisDisponiveis(response.user.perfis);
+        } catch (error) {
+            // Garante limpeza em caso de erro
+            clearAuthState();
+            throw error;
+        }
+    }, [clearAuthState]);
 
     // Logout
     const logout = useCallback(() => {
         // Tenta logout no servidor (não crítico)
         authApi.logout().catch(() => {});
 
-        // Limpa tokens e estado
-        tokenUtils.clearTokens();
-        setUsuario(null);
-        setPerfisDisponiveis([]);
-    }, []);
+        // Limpa completamente o estado
+        clearAuthState();
+    }, [clearAuthState]);
 
     // Inicialização - verifica token salvo
     useEffect(() => {
         const initAuth = async () => {
-            const token = tokenUtils.getAccessToken();
+            try {
+                const token = tokenUtils.getAccessToken();
 
-            if (token) {
-                const user = await fetchUser();
+                if (token) {
+                    const user = await fetchUser();
 
-                if (user) {
-                    setUsuario(user);
-                    setPerfisDisponiveis(user.perfis);
-                } else {
-                    // Token inválido
-                    tokenUtils.clearTokens();
+                    if (user) {
+                        setUsuario(user);
+                        setPerfisDisponiveis(user.perfis);
+                    } else {
+                        // Token inválido - limpa tudo
+                        clearAuthState();
+                    }
                 }
+            } catch (error) {
+                // Erro na inicialização - limpa estado para evitar loops
+                console.error('Erro ao inicializar autenticação:', error);
+                clearAuthState();
+            } finally {
+                setIsLoading(false);
             }
-
-            setIsLoading(false);
         };
 
         initAuth();
-    }, [fetchUser]);
+    }, [fetchUser, clearAuthState]);
 
     const value: AuthContextType = {
         usuario,
