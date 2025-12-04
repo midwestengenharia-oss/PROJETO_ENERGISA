@@ -82,6 +82,12 @@ export function LandingPage() {
               <img src={isDark ? LogoBranca : LogoPreta} alt="Midwest Logo" className="h-10 w-auto" />
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/app')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isDark ? 'text-white hover:bg-slate-700' : 'text-slate-700 hover:bg-slate-100'}`}
+              >
+                Entrar
+              </button>
               <a
                 href="https://wa.me/5565999999999?text=Quero%20economizar%2030%25%20na%20conta%20de%20luz!"
                 target="_blank"
