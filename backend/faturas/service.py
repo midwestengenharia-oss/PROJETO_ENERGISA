@@ -180,6 +180,7 @@ class FaturasService:
             qr_code_pix_image=f.get("qr_code_pix_image"),
             codigo_barras=f.get("codigo_barras"),
             pdf_path=f.get("pdf_path"),
+            pdf_base64=f.get("pdf_base64"),
             pdf_baixado_em=f.get("pdf_baixado_em"),
             sincronizado_em=f.get("sincronizado_em"),
             criado_em=f.get("criado_em"),
