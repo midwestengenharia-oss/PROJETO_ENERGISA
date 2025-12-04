@@ -131,6 +131,27 @@ async def verificar_integracoes(
 
 
 # ========================
+# Sincronização
+# ========================
+
+@router.get("/sync/status")
+async def status_sincronizacao(
+    current_user: dict = Depends(require_perfil(["superadmin"]))
+):
+    """Retorna status detalhado da sincronização com Energisa"""
+    return await service.status_sincronizacao()
+
+
+@router.post("/sync/forcar/{uc_id}")
+async def forcar_sincronizacao(
+    uc_id: int,
+    current_user: dict = Depends(require_perfil(["superadmin"]))
+):
+    """Força sincronização de uma UC específica"""
+    return await service.forcar_sincronizacao(uc_id, current_user["id"])
+
+
+# ========================
 # Manutenção
 # ========================
 

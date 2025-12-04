@@ -14,7 +14,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { SignInPage, SignUpPage } from '../pages/auth';
 
 // Dashboards
-import { DashboardAdmin } from '../pages/admin';
+import { DashboardAdmin, SyncStatus, GestaoUsuarios, GestaoLeads, LogsAuditoria } from '../pages/admin';
 import { DashboardProprietario } from '../pages/proprietario';
 import { DashboardGestor } from '../pages/gestor';
 import { DashboardBeneficiario } from '../pages/beneficiario';
@@ -98,12 +98,12 @@ export function AppRoutes() {
                 } />
                 <Route path="admin/usuarios" element={
                     <ProtectedRoute allowedPerfis={['superadmin']}>
-                        <PlaceholderPage title="Gestão de Usuários" />
+                        <GestaoUsuarios />
                     </ProtectedRoute>
                 } />
                 <Route path="admin/leads" element={
                     <ProtectedRoute allowedPerfis={['superadmin']}>
-                        <PlaceholderPage title="Gestão de Leads" />
+                        <GestaoLeads />
                     </ProtectedRoute>
                 } />
                 <Route path="admin/saques" element={
@@ -118,7 +118,12 @@ export function AppRoutes() {
                 } />
                 <Route path="admin/logs" element={
                     <ProtectedRoute allowedPerfis={['superadmin']}>
-                        <PlaceholderPage title="Logs de Auditoria" />
+                        <LogsAuditoria />
+                    </ProtectedRoute>
+                } />
+                <Route path="admin/sync" element={
+                    <ProtectedRoute allowedPerfis={['superadmin']}>
+                        <SyncStatus />
                     </ProtectedRoute>
                 } />
 

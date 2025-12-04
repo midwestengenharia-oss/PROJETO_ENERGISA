@@ -507,3 +507,138 @@ class AdminService:
             }).execute()
         except Exception:
             pass  # Não falhar se log não puder ser registrado
+
+    # ========================
+    # Sincronização
+    # ========================
+
+    async def status_sincronizacao(self) -> Dict[str, Any]:
+        """Retorna status detalhado da sincronização"""
+
+        # Total de UCs
+        ucs_result = self.supabase.unidades_consumidoras().select(
+            "id, cdc, cod_empresa, digito_verificador, ultima_sincronizacao, nome_titular, cidade, uf, usuario_id",
+            "usuarios!inner(cpf, nome_completo)"
+        ).execute()
+
+        ucs = ucs_result.data or []
+        total_ucs = len(ucs)
+
+        # Classificar UCs por status de sincronização
+        agora = datetime.now()
+        ucs_nunca_sync = []
+        ucs_desatualizadas = []
+        ucs_atualizadas = []
+
+        for uc in ucs:
+            ultima_sync = uc.get("ultima_sincronizacao")
+            uc_info = {
+                "id": uc["id"],
+                "uc_formatada": f"{uc['cod_empresa']}/{uc['cdc']}-{uc['digito_verificador']}",
+                "nome_titular": uc.get("nome_titular", "Não informado"),
+                "cidade": uc.get("cidade"),
+                "uf": uc.get("uf"),
+                "usuario": uc.get("usuarios", {}).get("nome_completo", "Desconhecido"),
+                "cpf_usuario": uc.get("usuarios", {}).get("cpf"),
+                "ultima_sincronizacao": ultima_sync
+            }
+
+            if not ultima_sync:
+                ucs_nunca_sync.append(uc_info)
+            else:
+                sync_time = datetime.fromisoformat(ultima_sync.replace("Z", "+00:00").replace("+00:00", ""))
+                horas_desde_sync = (agora - sync_time).total_seconds() / 3600
+
+                uc_info["horas_desde_sync"] = round(horas_desde_sync, 1)
+
+                if horas_desde_sync > 24:
+                    ucs_desatualizadas.append(uc_info)
+                else:
+                    ucs_atualizadas.append(uc_info)
+
+        # Sessões ativas da Energisa
+        sessoes_result = self.supabase.table("sessoes_energisa").select(
+            "cpf, atualizado_em"
+        ).execute()
+
+        sessoes = []
+        for s in sessoes_result.data or []:
+            atualizado = s.get("atualizado_em")
+            if atualizado:
+                sess_time = datetime.fromisoformat(atualizado.replace("Z", "+00:00").replace("+00:00", ""))
+                idade_horas = (agora - sess_time).total_seconds() / 3600
+                sessoes.append({
+                    "cpf": f"{s['cpf'][:3]}***{s['cpf'][-2:]}",
+                    "atualizado_em": atualizado,
+                    "idade_horas": round(idade_horas, 1),
+                    "status": "ativa" if idade_horas < 24 else "expirada"
+                })
+
+        # Total de faturas
+        faturas_result = self.supabase.faturas().select("id", count="exact").execute()
+        total_faturas = faturas_result.count or 0
+
+        # Faturas com PDF
+        faturas_pdf_result = self.supabase.faturas().select(
+            "id", count="exact"
+        ).not_.is_("pdf_base64", "null").execute()
+        faturas_com_pdf = faturas_pdf_result.count or 0
+
+        return {
+            "resumo": {
+                "total_ucs": total_ucs,
+                "ucs_atualizadas": len(ucs_atualizadas),
+                "ucs_desatualizadas": len(ucs_desatualizadas),
+                "ucs_nunca_sincronizadas": len(ucs_nunca_sync),
+                "sessoes_ativas": len([s for s in sessoes if s["status"] == "ativa"]),
+                "total_faturas": total_faturas,
+                "faturas_com_pdf": faturas_com_pdf
+            },
+            "ucs_atualizadas": sorted(ucs_atualizadas, key=lambda x: x.get("horas_desde_sync", 0)),
+            "ucs_desatualizadas": sorted(ucs_desatualizadas, key=lambda x: x.get("horas_desde_sync", 999), reverse=True),
+            "ucs_nunca_sincronizadas": ucs_nunca_sync,
+            "sessoes": sessoes
+        }
+
+    async def forcar_sincronizacao(self, uc_id: int, user_id: str) -> Dict[str, Any]:
+        """Força sincronização de uma UC específica"""
+        from backend.sync.service import SyncService
+
+        # Busca a UC
+        uc_result = self.supabase.unidades_consumidoras().select(
+            "*", "usuarios!inner(cpf)"
+        ).eq("id", uc_id).single().execute()
+
+        if not uc_result.data:
+            return {"success": False, "message": "UC não encontrada"}
+
+        uc = uc_result.data
+        cpf = uc.get("usuarios", {}).get("cpf")
+
+        if not cpf:
+            return {"success": False, "message": "CPF do usuário não encontrado"}
+
+        # Executa sincronização
+        try:
+            sync_service = SyncService()
+            resultado = await sync_service.sincronizar_uc(uc_id, cpf)
+
+            # Registra log
+            await self._registrar_log(
+                user_id=user_id,
+                acao="forcar_sync",
+                entidade="unidades_consumidoras",
+                entidade_id=str(uc_id),
+                dados_novos={"resultado": resultado}
+            )
+
+            return {
+                "success": True,
+                "message": f"Sincronização concluída para UC {uc['cdc']}",
+                "resultado": resultado
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Erro na sincronização: {str(e)}"
+            }

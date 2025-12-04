@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SyncScheduler:
     """Agendador de sincronização com a Energisa"""
 
-    def __init__(self, interval_minutes: int = 10):
+    def __init__(self, interval_minutes: int = 30):
         """
         Args:
             interval_minutes: Intervalo entre sincronizações em minutos

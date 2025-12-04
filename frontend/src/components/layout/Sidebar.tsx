@@ -22,6 +22,7 @@ import {
     ChevronRight,
     PlugZap,
     Sun,
+    RefreshCw,
 } from 'lucide-react';
 import { usePerfil, PERFIL_LABELS, PERFIL_CORES } from '../../contexts/PerfilContext';
 import type { PerfilTipo } from '../../api/types';
@@ -56,6 +57,7 @@ const MENUS: Record<PerfilTipo, MenuSection[]> = {
         {
             title: 'Sistema',
             items: [
+                { label: 'Sincronização', path: '/app/admin/sync', icon: RefreshCw },
                 { label: 'Configurações', path: '/app/admin/config', icon: Settings },
                 { label: 'Logs', path: '/app/admin/logs', icon: FileText },
             ],
