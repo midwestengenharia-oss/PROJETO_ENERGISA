@@ -4,7 +4,7 @@ Auth Schemas - Modelos Pydantic para autenticação
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 import re
 
@@ -80,10 +80,27 @@ class SignUpRequest(BaseModel):
     # Pessoa Física
     cpf: Optional[str] = Field(None, description="CPF (obrigatório para PF)")
 
-    # Pessoa Jurídica
+    # Pessoa Jurídica - Dados básicos
     cnpj: Optional[str] = Field(None, description="CNPJ (obrigatório para PJ)")
     razao_social: Optional[str] = Field(None, max_length=300)
     nome_fantasia: Optional[str] = Field(None, max_length=200)
+
+    # Pessoa Jurídica - Endereço (preenchido via BrasilAPI)
+    logradouro: Optional[str] = Field(None, max_length=255)
+    numero: Optional[str] = Field(None, max_length=20)
+    complemento: Optional[str] = Field(None, max_length=100)
+    bairro: Optional[str] = Field(None, max_length=100)
+    cidade: Optional[str] = Field(None, max_length=100)
+    uf: Optional[str] = Field(None, max_length=2)
+    cep: Optional[str] = Field(None, max_length=10)
+
+    # Pessoa Jurídica - Dados empresariais (preenchido via BrasilAPI)
+    porte: Optional[str] = Field(None, max_length=50)
+    natureza_juridica: Optional[str] = Field(None, max_length=100)
+    cnae_codigo: Optional[int] = None
+    cnae_descricao: Optional[str] = Field(None, max_length=255)
+    situacao_cadastral: Optional[str] = Field(None, max_length=50)
+    data_abertura: Optional[date] = None
 
     @field_validator("cpf")
     @classmethod
@@ -103,6 +120,13 @@ class SignUpRequest(BaseModel):
     @classmethod
     def validate_telefone_field(cls, v: Optional[str]) -> Optional[str]:
         return validar_telefone(v)
+
+    @field_validator("uf")
+    @classmethod
+    def validate_uf_field(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return v.upper()[:2]
 
     @model_validator(mode='after')
     def validate_documento(self):
@@ -143,14 +167,30 @@ class UpdateProfileRequest(BaseModel):
     nome_completo: Optional[str] = Field(None, min_length=3, max_length=255)
     telefone: Optional[str] = None
 
-    # Campos PJ
+    # Campos PJ - Dados básicos
     razao_social: Optional[str] = Field(None, max_length=300)
     nome_fantasia: Optional[str] = Field(None, max_length=200)
+
+    # Campos PJ - Endereço
+    logradouro: Optional[str] = Field(None, max_length=255)
+    numero: Optional[str] = Field(None, max_length=20)
+    complemento: Optional[str] = Field(None, max_length=100)
+    bairro: Optional[str] = Field(None, max_length=100)
+    cidade: Optional[str] = Field(None, max_length=100)
+    uf: Optional[str] = Field(None, max_length=2)
+    cep: Optional[str] = Field(None, max_length=10)
 
     @field_validator("telefone")
     @classmethod
     def validate_telefone_field(cls, v: Optional[str]) -> Optional[str]:
         return validar_telefone(v)
+
+    @field_validator("uf")
+    @classmethod
+    def validate_uf_field(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return v.upper()[:2]
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -190,10 +230,27 @@ class UserResponse(BaseModel):
     # Pessoa Física
     cpf: Optional[str] = None
 
-    # Pessoa Jurídica
+    # Pessoa Jurídica - Dados básicos
     cnpj: Optional[str] = None
     razao_social: Optional[str] = None
     nome_fantasia: Optional[str] = None
+
+    # Pessoa Jurídica - Endereço
+    logradouro: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
+
+    # Pessoa Jurídica - Dados empresariais
+    porte: Optional[str] = None
+    natureza_juridica: Optional[str] = None
+    cnae_codigo: Optional[int] = None
+    cnae_descricao: Optional[str] = None
+    situacao_cadastral: Optional[str] = None
+    data_abertura: Optional[date] = None
 
     # Status
     is_superadmin: bool = False

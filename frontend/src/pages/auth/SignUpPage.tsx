@@ -2,12 +2,12 @@
  * SignUpPage - Página de cadastro com suporte a PF e PJ
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/Toast';
-import { Loader2, Mail, Lock, User, Phone, CreditCard, Zap, ArrowLeft, Moon, SunMedium, Building2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, CreditCard, Zap, ArrowLeft, Moon, SunMedium, Building2, Search, CheckCircle } from 'lucide-react';
 
 // Formatar CPF
 const formatCPF = (value: string) => {
@@ -59,9 +59,82 @@ export function SignUpPage() {
         nome_fantasia: '',
         telefone: '',
         senha: '',
-        confirmarSenha: ''
+        confirmarSenha: '',
+        // Dados extras da BrasilAPI (preenchidos automaticamente)
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        uf: '',
+        cep: '',
+        porte: '',
+        natureza_juridica: '',
+        cnae_codigo: null as number | null,
+        cnae_descricao: '',
+        situacao_cadastral: '',
+        data_abertura: ''
     });
     const [loading, setLoading] = useState(false);
+    const [loadingCNPJ, setLoadingCNPJ] = useState(false);
+    const [cnpjFound, setCnpjFound] = useState(false);
+
+    // Buscar dados do CNPJ na BrasilAPI
+    const buscarDadosCNPJ = useCallback(async (cnpj: string) => {
+        const cnpjNumeros = cnpj.replace(/\D/g, '');
+        if (cnpjNumeros.length !== 14) return;
+
+        setLoadingCNPJ(true);
+        setCnpjFound(false);
+
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjNumeros}`);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Formata o CEP
+                const cepFormatado = data.cep ? data.cep.replace(/(\d{5})(\d{3})/, '$1-$2') : '';
+
+                // Monta o logradouro completo
+                const logradouroCompleto = data.descricao_tipo_de_logradouro && data.logradouro
+                    ? `${data.descricao_tipo_de_logradouro} ${data.logradouro}`
+                    : data.logradouro || '';
+
+                setFormData(prev => ({
+                    ...prev,
+                    razao_social: data.razao_social || '',
+                    nome_fantasia: data.nome_fantasia || '',
+                    // Endereço
+                    logradouro: logradouroCompleto,
+                    numero: data.numero || '',
+                    complemento: data.complemento || '',
+                    bairro: data.bairro || '',
+                    cidade: data.municipio || '',
+                    uf: data.uf || '',
+                    cep: cepFormatado,
+                    // Dados empresariais
+                    porte: data.porte || '',
+                    natureza_juridica: data.natureza_juridica || '',
+                    cnae_codigo: data.cnae_fiscal || null,
+                    cnae_descricao: data.cnae_fiscal_descricao || '',
+                    situacao_cadastral: data.descricao_situacao_cadastral || '',
+                    data_abertura: data.data_inicio_atividade || ''
+                }));
+                setCnpjFound(true);
+                toast.success('Dados da empresa carregados!');
+            } else if (response.status === 404) {
+                toast.warning('CNPJ não encontrado na base de dados');
+            } else {
+                toast.warning('Não foi possível buscar dados do CNPJ');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CNPJ:', error);
+            // Silenciosamente falha - usuário pode preencher manualmente
+        } finally {
+            setLoadingCNPJ(false);
+        }
+    }, [toast]);
 
     const handleChange = (field: string, value: string) => {
         let formattedValue = value;
@@ -70,6 +143,13 @@ export function SignUpPage() {
             formattedValue = formatCPF(value);
         } else if (field === 'cnpj') {
             formattedValue = formatCNPJ(value);
+            // Buscar dados quando CNPJ estiver completo
+            const cnpjNumeros = value.replace(/\D/g, '');
+            if (cnpjNumeros.length === 14) {
+                buscarDadosCNPJ(value);
+            } else {
+                setCnpjFound(false);
+            }
         } else if (field === 'telefone') {
             formattedValue = formatPhone(value);
         }
@@ -141,6 +221,20 @@ export function SignUpPage() {
                 signupData.cnpj = formData.cnpj.replace(/\D/g, '');
                 signupData.razao_social = formData.razao_social || null;
                 signupData.nome_fantasia = formData.nome_fantasia || null;
+                // Dados extras da BrasilAPI
+                signupData.logradouro = formData.logradouro || null;
+                signupData.numero = formData.numero || null;
+                signupData.complemento = formData.complemento || null;
+                signupData.bairro = formData.bairro || null;
+                signupData.cidade = formData.cidade || null;
+                signupData.uf = formData.uf || null;
+                signupData.cep = formData.cep?.replace(/\D/g, '') || null;
+                signupData.porte = formData.porte || null;
+                signupData.natureza_juridica = formData.natureza_juridica || null;
+                signupData.cnae_codigo = formData.cnae_codigo || null;
+                signupData.cnae_descricao = formData.cnae_descricao || null;
+                signupData.situacao_cadastral = formData.situacao_cadastral || null;
+                signupData.data_abertura = formData.data_abertura || null;
             }
 
             await signup(signupData);
@@ -291,14 +385,25 @@ export function SignUpPage() {
                                     <div>
                                         <label className={labelClass}>CNPJ</label>
                                         <div className="relative">
-                                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            {loadingCNPJ ? (
+                                                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" size={18} />
+                                            ) : cnpjFound ? (
+                                                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" size={18} />
+                                            ) : (
+                                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            )}
                                             <input
                                                 type="text"
                                                 value={formData.cnpj}
                                                 onChange={(e) => handleChange('cnpj', e.target.value)}
-                                                className={inputClass}
+                                                className={`${inputClass} ${cnpjFound ? 'border-green-500 focus:ring-green-500' : ''}`}
                                                 placeholder="00.000.000/0000-00"
                                             />
+                                            {loadingCNPJ && (
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-500">
+                                                    Buscando...
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -318,28 +423,34 @@ export function SignUpPage() {
                                 </div>
 
                                 <div>
-                                    <label className={labelClass}>Razão Social <span className="text-slate-400 font-normal">(opcional)</span></label>
+                                    <label className={labelClass}>
+                                        Razão Social
+                                        {cnpjFound && <span className="text-green-500 font-normal ml-2 text-xs">(preenchido automaticamente)</span>}
+                                    </label>
                                     <div className="relative">
                                         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
                                             type="text"
                                             value={formData.razao_social}
                                             onChange={(e) => handleChange('razao_social', e.target.value)}
-                                            className={inputClass}
+                                            className={`${inputClass} ${cnpjFound && formData.razao_social ? 'border-green-500' : ''}`}
                                             placeholder="Razão social da empresa"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className={labelClass}>Nome Fantasia <span className="text-slate-400 font-normal">(opcional)</span></label>
+                                    <label className={labelClass}>
+                                        Nome Fantasia
+                                        {cnpjFound && <span className="text-green-500 font-normal ml-2 text-xs">(preenchido automaticamente)</span>}
+                                    </label>
                                     <div className="relative">
                                         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
                                             type="text"
                                             value={formData.nome_fantasia}
                                             onChange={(e) => handleChange('nome_fantasia', e.target.value)}
-                                            className={inputClass}
+                                            className={`${inputClass} ${cnpjFound && formData.nome_fantasia ? 'border-green-500' : ''}`}
                                             placeholder="Nome fantasia"
                                         />
                                     </div>

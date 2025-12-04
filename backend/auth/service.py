@@ -107,6 +107,21 @@ class AuthService:
                 user_data["cnpj"] = data.cnpj
                 user_data["razao_social"] = data.razao_social
                 user_data["nome_fantasia"] = data.nome_fantasia
+                # Endereço (preenchido via BrasilAPI)
+                user_data["logradouro"] = data.logradouro
+                user_data["numero"] = data.numero
+                user_data["complemento"] = data.complemento
+                user_data["bairro"] = data.bairro
+                user_data["cidade"] = data.cidade
+                user_data["uf"] = data.uf
+                user_data["cep"] = data.cep
+                # Dados empresariais (preenchido via BrasilAPI)
+                user_data["porte"] = data.porte
+                user_data["natureza_juridica"] = data.natureza_juridica
+                user_data["cnae_codigo"] = data.cnae_codigo
+                user_data["cnae_descricao"] = data.cnae_descricao
+                user_data["situacao_cadastral"] = data.situacao_cadastral
+                user_data["data_abertura"] = data.data_abertura.isoformat() if data.data_abertura else None
 
             user_result = self.db.usuarios().insert(user_data).execute()
 
@@ -138,6 +153,22 @@ class AuthService:
                 razao_social=user.get("razao_social"),
                 nome_fantasia=user.get("nome_fantasia"),
                 telefone=user.get("telefone"),
+                # Endereço
+                logradouro=user.get("logradouro"),
+                numero=user.get("numero"),
+                complemento=user.get("complemento"),
+                bairro=user.get("bairro"),
+                cidade=user.get("cidade"),
+                uf=user.get("uf"),
+                cep=user.get("cep"),
+                # Dados empresariais
+                porte=user.get("porte"),
+                natureza_juridica=user.get("natureza_juridica"),
+                cnae_codigo=user.get("cnae_codigo"),
+                cnae_descricao=user.get("cnae_descricao"),
+                situacao_cadastral=user.get("situacao_cadastral"),
+                data_abertura=user.get("data_abertura"),
+                # Status
                 is_superadmin=user.get("is_superadmin", False),
                 ativo=user.get("ativo", True),
                 email_verificado=user.get("email_verificado", False),
@@ -227,6 +258,22 @@ class AuthService:
                 razao_social=user.get("razao_social"),
                 nome_fantasia=user.get("nome_fantasia"),
                 telefone=user.get("telefone"),
+                # Endereço
+                logradouro=user.get("logradouro"),
+                numero=user.get("numero"),
+                complemento=user.get("complemento"),
+                bairro=user.get("bairro"),
+                cidade=user.get("cidade"),
+                uf=user.get("uf"),
+                cep=user.get("cep"),
+                # Dados empresariais
+                porte=user.get("porte"),
+                natureza_juridica=user.get("natureza_juridica"),
+                cnae_codigo=user.get("cnae_codigo"),
+                cnae_descricao=user.get("cnae_descricao"),
+                situacao_cadastral=user.get("situacao_cadastral"),
+                data_abertura=user.get("data_abertura"),
+                # Status
                 is_superadmin=user.get("is_superadmin", False),
                 ativo=user.get("ativo", True),
                 email_verificado=user.get("email_verificado", False),
@@ -340,6 +387,22 @@ class AuthService:
             razao_social=user.get("razao_social"),
             nome_fantasia=user.get("nome_fantasia"),
             telefone=user.get("telefone"),
+            # Endereço
+            logradouro=user.get("logradouro"),
+            numero=user.get("numero"),
+            complemento=user.get("complemento"),
+            bairro=user.get("bairro"),
+            cidade=user.get("cidade"),
+            uf=user.get("uf"),
+            cep=user.get("cep"),
+            # Dados empresariais
+            porte=user.get("porte"),
+            natureza_juridica=user.get("natureza_juridica"),
+            cnae_codigo=user.get("cnae_codigo"),
+            cnae_descricao=user.get("cnae_descricao"),
+            situacao_cadastral=user.get("situacao_cadastral"),
+            data_abertura=user.get("data_abertura"),
+            # Status
             is_superadmin=user.get("is_superadmin", False),
             ativo=user.get("ativo", True),
             email_verificado=user.get("email_verificado", False),
@@ -354,7 +417,15 @@ class AuthService:
         nome_completo: Optional[str] = None,
         telefone: Optional[str] = None,
         razao_social: Optional[str] = None,
-        nome_fantasia: Optional[str] = None
+        nome_fantasia: Optional[str] = None,
+        # Campos de endereço
+        logradouro: Optional[str] = None,
+        numero: Optional[str] = None,
+        complemento: Optional[str] = None,
+        bairro: Optional[str] = None,
+        cidade: Optional[str] = None,
+        uf: Optional[str] = None,
+        cep: Optional[str] = None
     ) -> UserResponse:
         """
         Atualiza perfil do usuário.
@@ -365,6 +436,13 @@ class AuthService:
             telefone: Novo telefone
             razao_social: Nova razão social (PJ)
             nome_fantasia: Novo nome fantasia (PJ)
+            logradouro: Logradouro do endereço
+            numero: Número do endereço
+            complemento: Complemento do endereço
+            bairro: Bairro
+            cidade: Cidade
+            uf: UF (sigla do estado)
+            cep: CEP
 
         Returns:
             UserResponse atualizado
@@ -378,6 +456,21 @@ class AuthService:
             update_data["razao_social"] = razao_social
         if nome_fantasia is not None:
             update_data["nome_fantasia"] = nome_fantasia
+        # Campos de endereço
+        if logradouro is not None:
+            update_data["logradouro"] = logradouro
+        if numero is not None:
+            update_data["numero"] = numero
+        if complemento is not None:
+            update_data["complemento"] = complemento
+        if bairro is not None:
+            update_data["bairro"] = bairro
+        if cidade is not None:
+            update_data["cidade"] = cidade
+        if uf is not None:
+            update_data["uf"] = uf.upper()[:2] if uf else None
+        if cep is not None:
+            update_data["cep"] = cep
 
         if not update_data:
             return await self.get_user_by_id(user_id)
