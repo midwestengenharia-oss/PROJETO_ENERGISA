@@ -328,7 +328,7 @@ export function LandingPage() {
                     <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-[#FFD700]/10'}`}>
                       <DollarSign className="text-[#FFD700] mx-auto mb-2" size={32} />
                       <div className="text-2xl font-bold text-[#FFD700]">
-                        R$ {economia.mensal.toFixed(2)}
+                        R$ {(Number(economia.mensal) || 0).toFixed(2)}
                       </div>
                       <div className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                         por mês
@@ -338,7 +338,7 @@ export function LandingPage() {
                     <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-[#10B981]/10'}`}>
                       <TrendingDown className="text-[#10B981] mx-auto mb-2" size={32} />
                       <div className="text-2xl font-bold text-[#10B981]">
-                        R$ {economia.anual.toFixed(2)}
+                        R$ {(Number(economia.anual) || 0).toFixed(2)}
                       </div>
                       <div className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                         por ano
@@ -348,7 +348,7 @@ export function LandingPage() {
                     <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-[#1E3A8A]/10'}`}>
                       <Award className="text-[#1E3A8A] mx-auto mb-2" size={32} />
                       <div className="text-2xl font-bold text-[#1E3A8A]">
-                        R$ {economia.dezAnos.toFixed(2)}
+                        R$ {(Number(economia.dezAnos) || 0).toFixed(2)}
                       </div>
                       <div className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                         em 10 anos

@@ -575,7 +575,7 @@ function App() {
                 </td>
                 <td className="p-3 font-medium text-slate-700">{fat.mes}/{fat.ano}</td>
                 <td className="p-3 text-slate-600">{fat.vencimento || '-'}</td>
-                <td className="p-3 font-bold text-slate-800">R$ {fat.valor.toFixed(2)}</td>
+                <td className="p-3 font-bold text-slate-800">R$ {(Number(fat.valor) || 0).toFixed(2)}</td>
                 <td className="p-3"><span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(fat.status)}`}>{fat.status}</span></td>
                 <td className="p-3 pr-6 flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button onClick={() => setFaturaDetalhe(fat)} className="text-slate-600 hover:text-[#00A3E0] hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs font-medium transition-all"><FileText size={14} /> Detalhes</button>
@@ -989,7 +989,7 @@ function App() {
                           <div className="space-y-3">
                             {beneficiariasAgrupadas.slice(0, 5).map((b, i) => {
                               const percentual = metricas.transferidoTotal > 0
-                                ? ((b.total / metricas.transferidoTotal) * 100).toFixed(1)
+                                ? ((Number(b.total) / Number(metricas.transferidoTotal)) * 100).toFixed(1)
                                 : '0';
                               return (
                                 <div key={i} className="relative">
@@ -1897,7 +1897,7 @@ function App() {
             </div>
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
               <div className="text-center pb-4 border-b border-slate-100">
-                <div className="text-4xl font-extrabold text-slate-800">R$ {faturaDetalhe.valor.toFixed(2)}</div>
+                <div className="text-4xl font-extrabold text-slate-800">R$ {(Number(faturaDetalhe.valor) || 0).toFixed(2)}</div>
                 <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-bold border ${getStatusColor(faturaDetalhe.status)}`}>{faturaDetalhe.status}</span>
               </div>
               {faturaDetalhe.codigo_barras && (

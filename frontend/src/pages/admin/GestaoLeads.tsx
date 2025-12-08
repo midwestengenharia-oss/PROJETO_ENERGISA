@@ -288,7 +288,7 @@ export function GestaoLeads() {
                                     {estatisticas.leads_convertidos}
                                 </p>
                                 <p className="text-xs text-green-500 mt-1">
-                                    {(estatisticas.taxa_conversao * 100).toFixed(1)}% conversão
+                                    {((Number(estatisticas.taxa_conversao) || 0) * 100).toFixed(1)}% conversão
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
@@ -616,7 +616,7 @@ export function GestaoLeads() {
                                                             {formatarMoeda(sim.economia_anual)}/ano
                                                         </p>
                                                         <p className="text-xs text-green-500">
-                                                            {(sim.percentual_economia * 100).toFixed(0)}% economia
+                                                            {((Number(sim.percentual_economia) || 0) * 100).toFixed(0)}% economia
                                                         </p>
                                                     </div>
                                                 </div>

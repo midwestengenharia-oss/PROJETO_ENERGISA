@@ -294,7 +294,7 @@ export function DetalheUC() {
                         <div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">Média Mensal</p>
                             <p className="text-xl font-bold text-slate-900 dark:text-white">
-                                {estatisticas?.media_mensal?.toFixed(0) || 0} kWh
+                                {(Number(estatisticas?.media_mensal) || 0).toFixed(0)} kWh
                             </p>
                         </div>
                     </div>
@@ -425,7 +425,7 @@ export function DetalheUC() {
                                             itemStyle={{ color: '#F8FAFC' }}
                                             formatter={(value: number, name: string) => {
                                                 if (name === 'consumo') return [`${value} kWh`, 'Consumo'];
-                                                if (name === 'valor') return [`R$ ${value.toFixed(2)}`, 'Valor'];
+                                                if (name === 'valor') return [`R$ ${(Number(value) || 0).toFixed(2)}`, 'Valor'];
                                                 return [value, name];
                                             }}
                                         />
