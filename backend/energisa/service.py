@@ -330,36 +330,63 @@ class EnergisaService:
 
     def _refresh_token(self):
         print("   🔄 Tentando renovar Access Token com RTK...")
-        url = f"{self.base_url}/api/autenticacao/UsuarioClienteEnergisa/Autenticacao/AtualizarToken"
+        url = f"{self.base_url}/api/autenticacao/RefreshToken"
 
+        # Access token atual (UTK ou accessTokenEnergisa)
+        access_token = self.cookies.get("utk") or self.cookies.get("accessTokenEnergisa", "")
+        refresh_token = self.cookies.get("rtk") or self.cookies.get("refreshToken", "")
+
+        # Payload no formato correto da API Energisa
         payload = {
-            "refreshToken": self.cookies.get("rtk"),
-            "token": self.cookies.get("accessTokenEnergisa") or self.cookies.get("utk")
+            "ate": access_token,
+            "udk": self.cookies.get("udk", ""),
+            "utk": "",
+            "refreshToken": refresh_token,
+            "retk": ""
         }
 
-        headers = self._get_headers()
-        if "ispublic" in headers:
-            del headers["ispublic"]
+        # Headers com access_token obrigatório
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Origin": self.base_url,
+            "Referer": f"{self.base_url}/",
+            "Accept": "application/json, text/plain, */*",
+            "access_token": access_token
+        }
 
         try:
             resp = self.session.post(url, json=payload, headers=headers)
 
             if resp.status_code == 200:
                 data = resp.json()
-                if 'infos' in data and 'token' in data['infos']:
-                    new_token = data['infos']['token']
+                if not data.get('errored') and 'infos' in data:
+                    # 1. Atualiza tokens do body JSON
+                    new_utk = data['infos'].get('utk')
                     new_rtk = data['infos'].get('refreshToken')
 
-                    self.cookies['accessTokenEnergisa'] = new_token
+                    if new_utk:
+                        self.cookies['accessTokenEnergisa'] = new_utk
+                        self.cookies['utk'] = new_utk
                     if new_rtk:
                         self.cookies['rtk'] = new_rtk
+                        self.cookies['refreshToken'] = new_rtk
 
+                    # 2. Captura cookies retornados nos headers (Akamai, etc)
+                    for cookie in resp.cookies:
+                        self.cookies[cookie.name] = cookie.value
+
+                    # 3. Também pega cookies atualizados da sessão
+                    for cookie in self.session.cookies:
+                        self.cookies[cookie.name] = cookie.value
+
+                    # 4. Salva TODOS os dados atualizados no banco
                     SessionManager.save_session(self.cpf, self.cookies)
                     self._apply_cookies(self.cookies)
                     print("   ✅ Token renovado com sucesso!")
                     return True
 
-            print(f"   ❌ Falha ao renovar token: {resp.status_code} - {resp.text}")
+            print(f"   ❌ Falha ao renovar token: {resp.status_code} - {resp.text[:200]}")
             return False
         except Exception as e:
             print(f"   ❌ Erro na renovação: {e}")

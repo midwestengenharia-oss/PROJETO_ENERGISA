@@ -117,7 +117,12 @@ class SyncService:
                         logger.debug(f"   ⏭️ CPF {cpf[:3]}***{cpf[-2:]}: sessão expirada")
                         continue
 
-                    # Sessão já validada por is_authenticated(), não precisa refresh proativo
+                    # Faz refresh token ANTES de começar a sincronizar
+                    logger.info(f"   🔄 Renovando token para CPF {cpf[:3]}***{cpf[-2:]}...")
+                    if not svc._refresh_token():
+                        logger.warning(f"   ⏭️ CPF {cpf[:3]}***{cpf[-2:]}: falha no refresh, pulando")
+                        continue
+
                     logger.info(f"   👤 Processando CPF {cpf[:3]}***{cpf[-2:]} ({len(ucs_do_cpf)} UCs)")
 
                     for uc in ucs_do_cpf:
@@ -560,6 +565,16 @@ class SyncService:
                     **stats
                 }
 
+            # Faz refresh token ANTES de sincronizar
+            logger.info(f"   🔄 Renovando token...")
+            if not svc._refresh_token():
+                logger.warning("   ⚠️ Falha no refresh token")
+                return {
+                    "success": False,
+                    "error": "Falha ao renovar sessão. Faça login novamente.",
+                    **stats
+                }
+
             # Sincroniza GD de cada UC
             for uc in ucs:
                 stats["ucs_processadas"] += 1
@@ -617,6 +632,12 @@ class SyncService:
 
             if not svc.is_authenticated():
                 return {"success": False, "error": "Sessão da Energisa expirada"}
+
+            # Faz refresh token ANTES de sincronizar
+            logger.info(f"   🔄 Renovando token...")
+            if not svc._refresh_token():
+                logger.warning("   ⚠️ Falha no refresh token")
+                return {"success": False, "error": "Falha ao renovar sessão. Faça login novamente."}
 
             # Sincroniza
             uc_atualizada = await self._sincronizar_uc(svc, uc)
