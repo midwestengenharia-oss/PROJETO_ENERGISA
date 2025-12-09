@@ -645,7 +645,8 @@ class FaturasService:
             dados_extraidos = parser.parse(texto)
 
             # 5. Converter para dict e salvar no banco
-            dados_dict = dados_extraidos.dict(by_alias=True, exclude_none=False)
+            # Usar model_dump com mode='json' para serializar corretamente objetos date
+            dados_dict = dados_extraidos.model_dump(mode='json', by_alias=True, exclude_none=False)
 
             self.db.table("faturas").update({
                 "dados_extraidos": dados_dict,
