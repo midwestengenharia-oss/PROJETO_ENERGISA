@@ -104,7 +104,7 @@ export const faturasApi = {
         api.post<{ success: boolean; fatura_id: number; dados: any }>(`/faturas/${faturaId}/extrair`),
 
     // Extrair dados em lote
-    extrairLote: (ucId?: number, mesReferencia?: number, anoReferencia?: number, limite: number = 10) =>
+    extrairLote: (ucId?: number, mesReferencia?: number, anoReferencia?: number, limite: number = 10, forcarReprocessamento: boolean = false) =>
         api.post<{
             total: number;
             processadas: number;
@@ -116,7 +116,8 @@ export const faturasApi = {
                 uc_id: ucId,
                 mes_referencia: mesReferencia,
                 ano_referencia: anoReferencia,
-                limite
+                limite,
+                forcar_reprocessamento: forcarReprocessamento
             }
         }),
 

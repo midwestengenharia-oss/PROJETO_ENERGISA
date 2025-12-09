@@ -321,6 +321,7 @@ async def extrair_dados_lote(
     mes_referencia: Optional[int] = None,
     ano_referencia: Optional[int] = None,
     limite: int = 10,
+    forcar_reprocessamento: bool = Query(False, description="Forçar reprocessamento de faturas já extraídas"),
     current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
 ):
     """
@@ -331,6 +332,7 @@ async def extrair_dados_lote(
         mes_referencia: Filtrar por mês (opcional)
         ano_referencia: Filtrar por ano (opcional)
         limite: Máximo de faturas a processar (padrão: 10)
+        forcar_reprocessamento: Se true, reprocessa mesmo faturas já extraídas
 
     Returns:
         Resultado do processamento com contadores e detalhes
@@ -343,7 +345,7 @@ async def extrair_dados_lote(
     if ano_referencia:
         filtros["ano_referencia"] = ano_referencia
 
-    resultado = await faturas_service.processar_lote_faturas(filtros, limite)
+    resultado = await faturas_service.processar_lote_faturas(filtros, limite, forcar_reprocessamento)
     return resultado
 
 

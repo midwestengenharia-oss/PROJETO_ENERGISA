@@ -673,7 +673,8 @@ class FaturasService:
     async def processar_lote_faturas(
         self,
         filtros: Optional[dict] = None,
-        limite: int = 10
+        limite: int = 10,
+        forcar_reprocessamento: bool = False
     ) -> dict:
         """
         Processa extração de múltiplas faturas em lote.
@@ -681,15 +682,20 @@ class FaturasService:
         Args:
             filtros: Filtros para selecionar faturas (uc_id, mes, ano, etc)
             limite: Número máximo de faturas a processar
+            forcar_reprocessamento: Se True, reprocessa mesmo faturas já extraídas
 
         Returns:
             Resultado do processamento em lote
         """
         # 1. Buscar faturas pendentes de extração
-        query = self.db.table("faturas").select("id, numero_fatura, uc_id, mes_referencia, ano_referencia")
+        query = self.db.table("faturas").select("id, numero_fatura, uc_id, mes_referencia, ano_referencia, extracao_status")
 
-        # Filtrar apenas faturas com PDF e status PENDENTE
-        query = query.eq("extracao_status", "PENDENTE").not_.is_("pdf_base64", "null")
+        # Filtrar faturas com PDF
+        query = query.not_.is_("pdf_base64", "null")
+
+        # Se não forçar reprocessamento, filtrar apenas PENDENTE/ERRO
+        if not forcar_reprocessamento:
+            query = query.in_("extracao_status", ["PENDENTE", "ERRO", None])
 
         # Aplicar filtros adicionais
         if filtros:
@@ -707,11 +713,26 @@ class FaturasService:
         faturas_pendentes = result.data or []
 
         if not faturas_pendentes:
+            # Verificar se há faturas no período (com qualquer status)
+            check_query = self.db.table("faturas").select("id, extracao_status").not_.is_("pdf_base64", "null")
+            if filtros:
+                if filtros.get("mes_referencia"):
+                    check_query = check_query.eq("mes_referencia", filtros["mes_referencia"])
+                if filtros.get("ano_referencia"):
+                    check_query = check_query.eq("ano_referencia", filtros["ano_referencia"])
+
+            check_result = check_query.limit(5).execute()
+            total_periodo = len(check_result.data or [])
+
+            logger.warning(f"Nenhuma fatura pendente encontrada. Total no período: {total_periodo}")
+
             return {
                 "total": 0,
                 "processadas": 0,
                 "sucesso": 0,
                 "erro": 0,
+                "total_periodo": total_periodo,
+                "mensagem": f"Nenhuma fatura pendente. Encontradas {total_periodo} faturas no período (já processadas ou sem necessidade).",
                 "resultados": []
             }
 

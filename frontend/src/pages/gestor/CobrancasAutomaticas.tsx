@@ -37,6 +37,7 @@ export function CobrancasAutomaticas() {
     const [usinaId, setUsinaId] = useState<number | null>(null);
     const [mes, setMes] = useState(new Date().getMonth() + 1);
     const [ano, setAno] = useState(new Date().getFullYear());
+    const [forcarReprocessamento, setForcarReprocessamento] = useState(false);
 
     // Estados do processo
     const [etapa, setEtapa] = useState<'selecao' | 'extraindo' | 'gerando' | 'concluido'>('selecao');
@@ -73,7 +74,7 @@ export function CobrancasAutomaticas() {
             setEtapa('extraindo');
 
             // Passo 1: Extrair faturas em lote
-            const extracaoResponse = await faturasApi.extrairLote(undefined, mes, ano, 50);
+            const extracaoResponse = await faturasApi.extrairLote(undefined, mes, ano, 50, forcarReprocessamento);
             setResultadoExtracao(extracaoResponse.data);
 
             if (extracaoResponse.data.sucesso === 0) {
@@ -269,6 +270,19 @@ export function CobrancasAutomaticas() {
                             <li>Gera relatórios HTML profissionais</li>
                             <li>Salva como RASCUNHO para revisão antes de enviar</li>
                         </ol>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                        <input
+                            type="checkbox"
+                            id="forcar-reprocessamento"
+                            checked={forcarReprocessamento}
+                            onChange={(e) => setForcarReprocessamento(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <label htmlFor="forcar-reprocessamento" className="text-sm text-slate-600 dark:text-slate-300">
+                            Forçar reprocessamento de faturas já extraídas
+                        </label>
                     </div>
 
                     <button
