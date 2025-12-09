@@ -268,17 +268,17 @@ export function AppRoutes() {
                     </ProtectedRoute>
                 } />
                 <Route path="usuario/ucs" element={
-                    <ProtectedRoute allowedPerfis={['usuario']}>
+                    <ProtectedRoute allowedPerfis={['usuario', 'gestor']}>
                         <MinhasUCs />
                     </ProtectedRoute>
                 } />
                 <Route path="usuario/ucs/:id" element={
-                    <ProtectedRoute allowedPerfis={['usuario']}>
+                    <ProtectedRoute allowedPerfis={['usuario', 'gestor']}>
                         <DetalheUC />
                     </ProtectedRoute>
                 } />
                 <Route path="usuario/faturas" element={
-                    <ProtectedRoute allowedPerfis={['usuario']}>
+                    <ProtectedRoute allowedPerfis={['usuario', 'gestor']}>
                         <FaturasUsuario />
                     </ProtectedRoute>
                 } />

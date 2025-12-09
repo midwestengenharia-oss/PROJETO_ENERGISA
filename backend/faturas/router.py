@@ -278,3 +278,127 @@ async def criar_fatura_manual(
     Útil para registrar faturas que não estão disponíveis na API.
     """
     return await faturas_service.criar_manual(data)
+
+
+# ========== ENDPOINTS DE EXTRAÇÃO DE DADOS ==========
+
+@router.post(
+    "/{fatura_id}/extrair",
+    summary="Extrair dados da fatura",
+    description="Processa extração de dados estruturados do PDF da fatura",
+    dependencies=[Depends(require_perfil("superadmin", "gestor"))]
+)
+async def extrair_dados_fatura(
+    fatura_id: int,
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)],
+):
+    """
+    Extrai dados estruturados de uma fatura específica.
+
+    Usa PDF armazenado no banco para extrair:
+    - Informações básicas (código cliente, ligação, referência)
+    - Consumo e energia injetada
+    - Ajustes GD I/II
+    - Lançamentos e serviços
+    - Totais e valores
+    """
+    dados = await faturas_service.processar_extracao_fatura(fatura_id)
+    return {
+        "success": True,
+        "fatura_id": fatura_id,
+        "dados": dados
+    }
+
+
+@router.post(
+    "/extrair-lote",
+    summary="Extrair dados de múltiplas faturas",
+    description="Processa extração em lote de faturas pendentes",
+    dependencies=[Depends(require_perfil("superadmin", "gestor"))]
+)
+async def extrair_dados_lote(
+    uc_id: Optional[int] = None,
+    mes_referencia: Optional[int] = None,
+    ano_referencia: Optional[int] = None,
+    limite: int = 10,
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Processa extração de múltiplas faturas em lote.
+
+    Args:
+        uc_id: Filtrar por UC (opcional)
+        mes_referencia: Filtrar por mês (opcional)
+        ano_referencia: Filtrar por ano (opcional)
+        limite: Máximo de faturas a processar (padrão: 10)
+
+    Returns:
+        Resultado do processamento com contadores e detalhes
+    """
+    filtros = {}
+    if uc_id:
+        filtros["uc_id"] = uc_id
+    if mes_referencia:
+        filtros["mes_referencia"] = mes_referencia
+    if ano_referencia:
+        filtros["ano_referencia"] = ano_referencia
+
+    resultado = await faturas_service.processar_lote_faturas(filtros, limite)
+    return resultado
+
+
+@router.get(
+    "/{fatura_id}/dados-extraidos",
+    summary="Obter dados já extraídos",
+    description="Retorna dados estruturados já extraídos de uma fatura"
+)
+async def obter_dados_extraidos(
+    fatura_id: int,
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)],
+):
+    """
+    Obtém dados já extraídos de uma fatura.
+
+    Retorna None se a extração ainda não foi processada.
+    """
+    dados = await faturas_service.obter_dados_extraidos(fatura_id)
+
+    if dados is None:
+        return {
+            "success": False,
+            "message": "Dados ainda não extraídos ou extração falhou",
+            "dados": None
+        }
+
+    return {
+        "success": True,
+        "fatura_id": fatura_id,
+        "dados": dados
+    }
+
+
+@router.post(
+    "/{fatura_id}/reprocessar-extracao",
+    summary="Reprocessar extração",
+    description="Força reprocessamento da extração mesmo que já tenha sido feita",
+    dependencies=[Depends(require_perfil("superadmin", "gestor"))]
+)
+async def reprocessar_extracao(
+    fatura_id: int,
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)],
+):
+    """
+    Reprocessa extração de uma fatura.
+
+    Útil quando:
+    - A extração anterior teve erro
+    - O parser foi melhorado
+    - Dados precisam ser atualizados
+    """
+    dados = await faturas_service.reprocessar_extracao(fatura_id)
+    return {
+        "success": True,
+        "fatura_id": fatura_id,
+        "message": "Extração reprocessada com sucesso",
+        "dados": dados
+    }

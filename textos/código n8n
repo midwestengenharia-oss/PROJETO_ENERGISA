@@ -1,0 +1,704 @@
+/*Este código recebe o input vindo do message a model que é responsável por extrair os dados da fatura.
+*/
+/**
+ * CÁLCULO – Assinatura / Compensação (GD I / GD II)
+ * Versão 3.0 — patch GD I: classificação por diferença (créditos abatem até o piso)
+ */
+
+/* =========================
+   Utils & Timezone (Cuiabá)
+   ========================= */
+const TIMEZONE = 'America/Cuiaba';
+
+function round2(n){ return Math.round((+n + Number.EPSILON) * 100) / 100; }
+function keep5(n){ return Number((+n).toFixed(5)); }
+function fmtBR(v, money=false){
+  return money ? v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) :
+                 v.toLocaleString('pt-BR');
+}
+function parseBRFloat(s){
+  if (s == null || s === '') return 0;
+  if (typeof s === 'number') return Number.isFinite(s) ? s : 0;
+  const str = String(s).replace(/\s|\u00A0/g,'').trim();
+  const hasComma = str.includes(',');
+  const norm = hasComma
+    ? str.replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'')
+    : str.replace(/[^0-9.\-]/g,'');
+  const n = parseFloat(norm);
+  return Number.isFinite(n) ? n : 0;
+}
+function stripAccents(s){ return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+// ---- Datas (ISO ↔ BR) ----
+function isISODate(s){ return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function parseDateISO(s){
+  if (!s || !isISODate(s)) return null;
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d); // data local
+}
+function parseDateBR(s){
+  if(!s) return null;
+  const m = String(s).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return null;
+  const [, dd, mm, yyyy] = m.map(Number);
+  return new Date(yyyy, mm-1, dd);
+}
+function parseDateFlex(s){ return parseDateISO(s) || parseDateBR(s) || null; }
+
+function formatDateBR(d){
+  if(!d) return '';
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+function formatDateISO(d){
+  if(!d) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function isoToBR(s){ const d = parseDateISO(s); return d ? formatDateBR(d) : (s || ''); }
+
+// ---- TZ helpers (America/Cuiaba) ----
+function ymdPartsTZ(d=new Date(), tz=TIMEZONE){
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'
+  }).formatToParts(d);
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return { y: +map.year, m: +map.month, d: +map.day };
+}
+function startOfDayTZ(d=new Date(), tz=TIMEZONE){
+  const {y,m,d:dd} = ymdPartsTZ(d, tz);
+  return new Date(y, m-1, dd);
+}
+function next15FromTZ(d=new Date(), tz=TIMEZONE){
+  const {y,m,d:dd} = ymdPartsTZ(d, tz);
+  let Y = y, M = m, D = 15;
+  if (dd >= 15) { M === 12 ? (Y = y + 1, M = 1) : (M = m + 1); }
+  return new Date(Y, M-1, D);
+}
+
+/* =========================
+   TXID helpers
+   ========================= */
+const MIN_LEN = 26, MAX_LEN = 35, TARGET_LEN = 32, PREFIX = 'MW';
+function onlyDigits(s=''){ return String(s).replace(/\D/g,''); }
+function sanitizeAsciiUpper(s=''){
+  return String(s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Za-z0-9 ]/g,'')
+    .toUpperCase().trim();
+}
+function firstName(full=''){ const t = sanitizeAsciiUpper(full).split(/\s+/).filter(Boolean); return t[0] || ''; }
+function ensureAZ09(s=''){ return String(s).replace(/[^A-Z0-9]/g,''); }
+function base36Now(){ return Date.now().toString(36).toUpperCase(); }
+function randBase36(n=8){ let s=''; while(s.length<n) s+=Math.random().toString(36).slice(2).toUpperCase(); return s.slice(0,n); }
+function makeTxid({ nomeRaw, docRaw, ucRaw }){
+  const nome = firstName(nomeRaw).slice(0,8);
+  const doc  = onlyDigits(docRaw);
+  const uc   = onlyDigits(ucRaw);
+  const docPart = doc || uc || '000000';
+  const ts = base36Now().slice(-6);
+  let core = ensureAZ09(PREFIX + docPart + nome + ts);
+  let target = Math.min(Math.max(core.length + 4, TARGET_LEN), MAX_LEN);
+  if (target < MIN_LEN) target = MIN_LEN;
+  const fill = Math.max(0, target - core.length);
+  core += ensureAZ09(randBase36(fill));
+  let txid = core.slice(0, MAX_LEN);
+  if (txid.length < MIN_LEN) txid = (txid + ensureAZ09(randBase36(MIN_LEN))).slice(0, MIN_LEN);
+  return txid;
+}
+
+/* =========================
+   Entradas (nós do n8n)
+   ========================= */
+const lead = $('Edit Fields2').first().json;
+
+// Pega o conteúdo estruturado do "Message a model" (tanto .message.content quanto .content)
+const msgItem = $('Message a model').first().json || {};
+const m = (msgItem.message && msgItem.message.content) ? msgItem.message.content
+        : (msgItem.content || {});
+
+// ================= Básicos =================
+const refMes   = m.mes_ano_referencia || '';
+const titular  = lead['Nome completo ou razão social'] || lead['Nome'] || '';
+const cidade = lead['Cidade'] || '';
+const endereco = [
+  lead['Endereço'] || '',
+  lead['Número'] ? String(lead['Número']) : null,
+].filter(Boolean).join(', ')
+  + (lead['Cidade'] ? ` - ${lead['Cidade']}` : '');
+
+const leituraTxt = `De ${isoToBR(m.leitura_anterior_data)} à ${isoToBR(m.leitura_atual_data)}${m.dias ? ` (${m.dias} dias)` : ''}`;
+const acumuladoAnterior = round2(parseBRFloat(lead['Economia_acumulada'] ?? 0));
+
+/* =========================
+   Itens da fatura (estruturado)
+   ========================= */
+function asArray(x){ return Array.isArray(x) ? x : (x ? [x] : []); }
+
+const consumoObj = m?.itens_fatura?.consumo_kwh || {};
+const injArr = [
+  ...asArray(m?.itens_fatura?.['energia_injetada oUC']),
+  ...asArray(m?.itens_fatura?.['energia_injetada mUC']),
+].filter(Boolean);
+const ajusteObj = m?.itens_fatura?.ajuste_lei_14300 || {};
+const servicosArr = Array.isArray(m?.itens_fatura?.lancamentos_e_servicos)
+  ? m.itens_fatura.lancamentos_e_servicos : [];
+
+/* =========================
+   Consolidação Consumo / Injetada
+   ========================= */
+const rowConsumo = {
+  kwh:  Number(consumoObj?.quantidade ?? 0),
+  unit: Number(consumoObj?.preco_unit_com_tributos ?? 0),
+  valor: consumoObj?.valor ?? null,
+  hadValor: consumoObj?.valor != null
+};
+
+let injKwh=0, injValor=0, injHadValor=false, injUnitFirst=0;
+for (const it of injArr) {
+  const q = Number(it?.quantidade ?? 0);
+  const u = Number(it?.preco_unit_com_tributos ?? 0);
+  const v = Number(it?.valor ?? 0);          // normalmente negativo
+  injKwh   += q || 0;
+  injValor += (v || 0);
+  injHadValor = injHadValor || (it?.valor != null);
+  if (!injUnitFirst && u) injUnitFirst = u;
+}
+// Unitário ponderado pelo |valor| (itens de injetada vêm negativos na fatura)
+const injUnitWeighted = (injHadValor && injKwh > 0) ? Math.abs(injValor)/injKwh : 0;
+const rowInjetada = {
+  kwh: injKwh,
+  valor: injValor,
+  unit: injUnitWeighted || injUnitFirst || 0,
+  hadValor: injHadValor
+};
+
+/* =========================
+   GD I x GD II
+   ========================= */
+// Ligação com fallback por "classe"
+const lig = (() => {
+  const lx = stripAccents(m?.ligacao || '').toUpperCase();
+  if (lx) return lx;
+  const cx = stripAccents(m?.classe || '').toUpperCase();
+  if (/MONOFASICO/.test(cx)) return 'MONOFASICO';
+  if (/BIFASICO/.test(cx))  return 'BIFASICO';
+  if (/TRIFASICO/.test(cx)) return 'TRIFASICO';
+  return null;
+})();
+const minMap = { 'MONOFASICO': 30, 'BIFASICO': 50, 'TRIFASICO': 100 };
+const minKwhPorLig = minMap[lig] || 0;
+
+// Detecta GD II por ajuste 14.300, por tipo_gd ou por descrição
+const temGD2 = !!ajusteObj?.valor
+  || injArr.some(x => /\bGD\s*(?:II|2)\b/i.test(String(x?.tipo_gd || x?.descricao || '')))
+  || /\bGD\s*(?:II|2)\b/i.test(String(ajusteObj?.descricao || ''));
+
+/* =========================
+   Métricas base + Tarifa/Assinatura
+   ========================= */
+const kwhConsumo  = Number(rowConsumo.kwh || 0);
+const kwhInjetada = Number(rowInjetada.kwh || 0);
+
+// Desconto ajustável (ex.: 30% de desconto na assinatura)
+const DESCONTO_ASSINATURA = 0.30;
+
+// Unitário "da fatura" (com tributos). Fallback: lead['Tarifa'] ou 0.76
+const unitConsumoRaw = Number(rowConsumo.unit || rowInjetada.unit || 0);
+const fallbackLeadTarifa = parseBRFloat(lead['Tarifa'] ?? 0) || 0.76;
+
+const unitConsumo = keep5(unitConsumoRaw || 0);
+const baseTarifa  = unitConsumoRaw || fallbackLeadTarifa;
+const tarifa      = keep5(baseTarifa * (1 - DESCONTO_ASSINATURA));
+
+// "Sem assinatura": usa |valor da(s) linhas| quando existir; senão kWh × unitário
+const valorInjetadaAbs = rowInjetada.hadValor
+  ? round2(Math.abs(rowInjetada.valor))
+  : round2(kwhInjetada * (unitConsumo || fallbackLeadTarifa));
+
+const semAssinatura = valorInjetadaAbs;
+// "Com assinatura": kWh injetado × tarifa da assinatura
+const comAssinatura = round2(kwhInjetada * tarifa);
+const economia      = round2(semAssinatura - comAssinatura);
+
+/* =========================
+   Encargos (GD I vs GD II) + Extras
+   ========================= */
+let disponibilidadeGD2 = 0;
+let taxaMinimaGD1 = 0;
+let energiaExcedenteGD1 = 0; // quando consumo > injetado
+
+const unitBase = unitConsumo || fallbackLeadTarifa; // unitário base
+const kwhGap = Math.max(0, kwhConsumo - kwhInjetada); // déficit de créditos (consumo - injetada)
+
+// === REGRA ATUALIZADA (GD I): créditos abatem até o piso ===
+// Se kwhGap > minKwhPorLig  => Excedente (paga gap)
+// Se kwhGap <= minKwhPorLig => Taxa mínima (paga piso)
+if (temGD2) {
+  // GD II: disponibilidade (Lei 14.300)
+  disponibilidadeGD2 = round2(Math.abs(Number(ajusteObj?.valor ?? 0)));
+} else {
+  // GD I:
+  if (kwhGap > 0) {
+    const valorGap = round2(kwhGap * unitBase);
+    const valorMin = round2(minKwhPorLig * unitBase);
+
+    if (kwhGap > minKwhPorLig) {        // (>) e não (>=)
+      energiaExcedenteGD1 = valorGap;   // excedente
+      taxaMinimaGD1 = 0;
+    } else {
+      energiaExcedenteGD1 = 0;          // <= piso => taxa mínima
+      taxaMinimaGD1 = valorMin;
+    }
+  } else {
+    // kwhGap == 0 (ou negativo) => não há déficit, mas mantém piso
+    taxaMinimaGD1 = round2(minKwhPorLig * unitBase);
+    energiaExcedenteGD1 = 0;
+  }
+}
+
+// Extras / serviços
+const extrasItensValor = round2(Number(m?.totais?.adicionais_bandeira ?? 0));
+const servicosTotal = round2(servicosArr.reduce((acc, s) => acc + Number(s?.valor ?? 0), 0));
+
+/* =========================
+   Vencimento da assinatura (Cuiabá)
+   ========================= */
+const hoje0 = startOfDayTZ(new Date());      // fixa TZ = America/Cuiaba
+const dtFatura = parseDateFlex(m.vencimento || ''); // aceita ISO ou BR
+
+let dtAss;
+if (dtFatura && startOfDayTZ(dtFatura) >= hoje0) {
+  // hoje <= vencimento → assinatura = (vencimento - 1 dia)
+  dtAss = new Date(dtFatura.getFullYear(), dtFatura.getMonth(), dtFatura.getDate() - 1);
+} else {
+  // hoje > vencimento → próximo dia 15 contando a partir de hoje
+  dtAss = next15FromTZ(hoje0);
+}
+const vencimentoAssinatura    = formatDateBR(dtAss);   // DD/MM/AAAA
+const vencimentoAssinaturaISO = formatDateISO(dtAss);  // YYYY-MM-DD
+
+/* =========================
+   Total e PIX
+   ========================= */
+const totalAPagarComAss = round2(
+  comAssinatura
+  + (temGD2 ? disponibilidadeGD2 : (energiaExcedenteGD1 + taxaMinimaGD1))
+  + extrasItensValor
+  + servicosTotal
+);
+const valorPix = totalAPagarComAss.toFixed(2);
+
+/* =========================
+   DOC do lead & TXID
+   ========================= */
+const cpfDigits  = onlyDigits(lead['CPF']  ?? '');
+const cnpjDigits = onlyDigits(lead['CNPJ'] ?? '');
+const mixRaw     = (lead['CPF/CNPJ'] ?? lead['CPF ou CNPJ'] ?? lead['Documento'] ?? '');
+const mixDigits  = onlyDigits(mixRaw);
+const docChosen  = cnpjDigits || cpfDigits || mixDigits || '';   // prioriza CNPJ > CPF > misto
+const ucRaw      = m.codigo_cliente || lead['UC'] || '';
+const txid       = makeTxid({ nomeRaw: titular, docRaw: docChosen, ucRaw });
+
+/* =========================
+   Saída
+   ========================= */
+return [{
+  json: {
+    // Cabeçalho / contexto
+    refMes, titular, cidade, endereco, leituraTxt,
+    vencimentoAssinatura,           // BR (exibição)
+    vencimentoAssinaturaISO,        // ISO (se precisar em outros nós)
+    compensacao: temGD2 ? 'GD II' : 'GD I',
+    ligacao: lig || null,
+
+    // Métricas base
+    unitConsumo,
+    tarifaAssinatura: tarifa,
+    kwhConsumo, kwhInjetada,
+
+    // Comparativo assinatura
+    semAssinatura, comAssinatura, economia,
+
+    // Encargos / extras
+    disponibilidadeGD2, taxaMinimaGD1,
+    extrasItensValor, servicosTotal,
+
+    // Total & PIX
+    totalAPagarComAss,
+    valorPix,
+
+    // Identificação de cobrança
+    txid,
+
+    // Acumulados
+    acumuladoAnterior,
+    acumuladoAtual: round2(acumuladoAnterior + economia),
+
+    // Itens para tabela/recibo
+    itensTabela: (() => {
+      const itens = [];
+      if (kwhInjetada > 0) {
+        itens.push({ label: 'Energia injetada no período (assinatura)', kwh: kwhInjetada, valor: comAssinatura });
+      }
+      if (temGD2 && disponibilidadeGD2 !== 0) {
+        itens.push({ label: 'Disponibilidade (GD II – Lei 14.300/22)', kwh: ajusteObj?.quantidade || null, valor: disponibilidadeGD2 });
+      }
+      if (!temGD2) {
+        const kwhGapLocal = Math.max(0, kwhConsumo - kwhInjetada); // exibe gap bruto
+        if (energiaExcedenteGD1 !== 0) {
+          itens.push({ label: 'Energia excedente consumida da rede (consumo acima dos créditos)', kwh: kwhGapLocal, valor: energiaExcedenteGD1 });
+        }
+        if (taxaMinimaGD1 !== 0) {
+          itens.push({ label: `Taxa mínima (GD I • ${lig || '-'} • ${minKwhPorLig} kWh)`, kwh: minKwhPorLig, valor: taxaMinimaGD1 });
+        }
+      }
+      if (extrasItensValor !== 0) {
+        itens.push({ label: 'Bandeiras e ajustes (itens)', kwh: null, valor: extrasItensValor });
+      }
+      if (servicosTotal !== 0) {
+        itens.push({ label: 'Serviços e créditos (iluminação, etc.)', kwh: null, valor: servicosTotal });
+      }
+      return itens;
+    })(),
+
+    // Auditoria / debug
+    auditoria: {
+      vencimentoFaturaEntrada: m.vencimento || null,
+      vencimentoAssinaturaISO,
+      inj_registros: injArr.length,
+      inj_resumo: injArr.map(it => ({
+        desc: it?.descricao ?? null,
+        q: Number(it?.quantidade ?? null),
+        u: Number(it?.preco_unit_com_tributos ?? null),
+        v: Number(it?.valor ?? null),
+        gd: it?.tipo_gd ?? null,
+        ref: it?.mes_ano_referencia_item ?? null
+      })),
+      ajuste_14300_valor: Number(ajusteObj?.valor ?? 0),
+      unitarioFaturaUsado: unitConsumo || fallbackLeadTarifa,
+      descontoPercentualAplicado: Math.round(DESCONTO_ASSINATURA * 100),
+      timezoneUsada: TIMEZONE,
+      gdi: !temGD2,
+
+      // Mantém campos existentes; kwhMinAplicado agora reflete a aplicação real
+      kwhExcedente: Math.max(0, kwhConsumo - kwhInjetada),
+      valorExcedente: energiaExcedenteGD1,
+      kwhMinAplicado: (taxaMinimaGD1 !== 0 ? minKwhPorLig : 0)
+    }
+  }
+}];
+
+/* Este outro código prepara a apresentação do relatório.*/
+
+// ====== CONFIG ======
+const CODE8_NODE = 'Code8'; // <- troque se seu nó tiver outro nome
+
+// ====== Helpers ======
+function round2(n){ return Math.round((+n + Number.EPSILON) * 100) / 100; }
+function fmtBR(v, money=false){
+  return money ? v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) :
+                 v.toLocaleString('pt-BR');
+}
+function keep5(n){ return Number((+n).toFixed(5)); }
+
+function pickQrBinaryData(bin){
+  if (!bin || typeof bin !== 'object') return null;
+  // tenta chaves comuns primeiro
+  const pref = ['qrcode','qr','image','data','binary'];
+  for (const k of pref) {
+    if (bin[k]?.data) return bin[k].data;
+  }
+  // pega o primeiro property do binário
+  const firstKey = Object.keys(bin)[0];
+  return firstKey ? (bin[firstKey]?.data || null) : null;
+}
+
+// ====== Entrada ======
+const it      = $input.first();                   // nó QR Code (imediatamente anterior)
+const fromQR  = it.json || {};
+const bin     = it.binary || {};
+const fromC8  = $(CODE8_NODE).first().json || {}; // saída do Code8 (com cálculos)
+
+// Mescla (Code8 como base; QR pode acrescentar campos como pixCopiaECola)
+const j = { ...fromC8, ...fromQR };
+
+// Campos calculados no Code8 (com salvaguardas)
+const refMes               = j.refMes || '';
+const titular              = j.titular || '';
+const cidade               = j.cidade || '';
+const endereco             = j.endereco || '';
+const leituraTxt           = j.leituraTxt || '';
+const vencimentoAssinatura = j.vencimentoAssinatura || '';
+const compensacaoTipo      = j.compensacao || '';
+
+const unitConsumo          = keep5(j.unitConsumo ?? 0);
+const tarifa               = keep5(j.tarifaAssinatura ?? j.tarifa ?? 0);
+
+const kwhConsumo           = j.kwhConsumo ?? 0;
+const kwhInjetada          = j.kwhInjetada ?? 0;
+
+const semAssinatura        = round2(j.semAssinatura ?? 0);
+const comAssinatura        = round2(j.comAssinatura ?? 0);
+// garante consistência da economia
+const economia             = round2(j.economia ?? (semAssinatura - comAssinatura));
+
+const disponibilidadeGD2   = round2(j.disponibilidadeGD2 ?? 0);
+const taxaMinimaGD1        = round2(j.taxaMinimaGD1 ?? 0);
+const extrasItensValor     = round2(j.extrasItensValor ?? 0);
+const servicosTotal        = round2(j.servicosTotal ?? 0);
+const totalAPagarComAss    = round2(j.totalAPagarComAss ?? 0);
+
+const acumuladoAtual       = round2(j.acumuladoAtual ?? 0);
+const itensTabela          = Array.isArray(j.itensTabela) ? j.itensTabela : [];
+
+// QR + copia-e-cola (robusto a variações de nó)
+const qrBase64FromBin = pickQrBinaryData(bin);
+const qrBase64        = qrBase64FromBin || (typeof fromQR.qrBase64 === 'string' ? fromQR.qrBase64 : null);
+const qrDataUri       = j.qrDataUri || (qrBase64 ? `data:image/png;base64,${qrBase64}` : '');
+const pixCopiaECola   = String(j.pixCopiaECola || j.emv || j.output?.pixCopiaECola || '').trim();
+
+// ====== HTML ======
+const tbodyRows = itensTabela.length
+  ? itensTabela.map(it => `
+      <tr>
+        <td>${it.label}</td>
+        <td class="center">${it.kwh == null ? '-' : fmtBR(it.kwh)}</td>
+        <td class="right">${fmtBR(it.valor,true)}</td>
+      </tr>`).join('')
+  : `<tr><td colspan="3" class="center" style="padding:12px">Sem itens para exibir.</td></tr>`;
+
+const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fatura de Energia por Assinatura</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial, sans-serif;background:#f5f5f5;padding:20px;color:#333}
+.container{max-width:900px;margin:0 auto;background:transparent}
+.content-block{background:#fff;border:2px solid #333;margin-bottom:12px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.header-block{display:flex;justify-content:space-between;align-items:center;padding:16px}
+.logo-img{height:46px;width:auto;object-fit:contain}
+.stamp-box{border:2px solid #333;padding:10px 16px;background:#fff;box-shadow:inset 0 0 0 1px #ddd}
+.stamp-box h2{font-size:15px;font-weight:600;margin-bottom:4px}
+.stamp-box .ref{font-size:13px;margin-bottom:4px;color:#555}
+.stamp-box .discount{font-size:13px;color:#d4a017;font-weight:bold}
+.badge{display:inline-block;padding:2px 8px;border:1px solid #333;border-radius:6px;font-size:12px;margin-left:8px;background:#f9f9f9}
+
+.customer-block{display:flex;justify-content:space-between;padding:16px;gap:20px}
+.customer-details{flex:1}
+.info-row{display:flex;margin-bottom:8px;font-size:13px}
+.info-label{background:#FFE599;padding:6px 10px;width:140px;border:1px solid #333;font-weight:bold}
+.info-value{padding:6px 10px;border:1px solid #333;border-left:none;flex:1;background:#fff}
+.total-box{border:2px solid #333;padding:14px;text-align:center;background:#FFE599;align-self:stretch;width:230px;display:flex;flex-direction:column;justify-content:center}
+.total-box h3{font-size:13px;font-weight:600;margin-bottom:6px}
+.total-value{font-size:24px;font-weight:bold}
+.due-date{margin-top:6px;font-size:11px}
+
+.billing-block{padding:14px}
+.billing-table{width:100%;border-collapse:collapse}
+.billing-table th{background:#FFE599;padding:10px;text-align:left;font-size:13px;font-weight:bold;border:1px solid #333}
+.billing-table th.center{text-align:center;width:110px}
+.billing-table th.value-col{text-align:center;width:120px}
+.billing-table td{padding:8px 10px;font-size:13px;border:1px solid #333;background:#fff}
+.billing-table td.center{text-align:center}
+.billing-table td.right{text-align:right}
+
+.comparison-block{padding:0}
+.comparison-grid{display:grid;grid-template-columns:1fr 220px}
+.comparison-row{display:contents}
+.comparison-label{padding:12px 14px;font-size:14px;font-weight:bold;background:#FFE599;border-bottom:1px solid #333;border-right:1px solid #333}
+.comparison-value{width:220px;padding:12px 14px;text-align:right;font-size:15px;font-weight:bold;border-bottom:1px solid #333;color:#fff}
+.value-without{background:#FF7744}
+.value-with{background:#5588DD}
+
+.savings-row{display:grid;grid-template-columns:1fr 220px}
+.savings-label{padding:12px 14px;font-size:14px;font-weight:bold;background:#FFE599;border-right:1px solid #333}
+.savings-value{width:220px;padding:12px 14px;text-align:right;font-size:15px;font-weight:bold;background:#55BB55;color:#fff}
+
+.accumulated-row{display:grid;grid-template-columns:1fr 220px}
+.accumulated-label{padding:12px 14px;font-size:15px;font-weight:bold;background:#FFE599;border-right:1px solid #333}
+.accumulated-value{width:220px;padding:12px 14px;text-align:right;font-size:15px;font-weight:bold;background:#55BB55;color:#fff}
+
+/* ===== Bloco PIX – fundo #fcf8f5, imagem maior ===== */
+.content-block.pix-block{
+  background:#fcf8f5;
+  border-color:#333;
+  padding:10px 14px;
+}
+.pix-wrap{
+  display:grid;
+  grid-template-columns:1fr 260px; /* coluna da direita (QR) */
+  gap:14px;
+  align-items:center;             /* centraliza verticalmente QR e imagem */
+  min-height:220px;
+}
+.pix-left{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  padding:4px 12px;
+}
+.apontou-img{
+  height:220px;      /* ajuste fino aqui: 140–180px conforme layout */
+  max-height:none;
+  width:auto;
+  object-fit:contain;
+  display:block;
+}
+.pix-right{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:4px 0;
+}
+.qr-card{
+  width:260px;                 /* ocupa toda a coluna da direita */
+  text-align:center;
+  background:#fff;
+  border:2px solid #333;
+  border-radius:12px;
+  padding:10px 12px;
+  box-sizing:border-box;
+}
+.qr-title{
+  text-align:center;
+  font-size:11px;
+  margin-bottom:8px;
+  color:#555;
+}
+.qr-img{
+  width:200px;
+  height:200px;
+  display:block;
+  margin:0 auto;
+  image-rendering:crisp-edges;
+}
+.copia-cola{
+  font-family:monospace;
+  font-size:10px;
+  word-break:break-all;
+  line-height:1.2;
+  background:#f4f4f4;
+  border:1px dashed #ccc;
+  border-radius:6px;
+  padding:6px;
+  max-height:48px;
+  overflow:auto;
+}
+
+.content-block, .pix-block, .pix-wrap{page-break-inside:avoid}
+@media(max-width:768px){
+  .pix-wrap{ grid-template-columns:1fr; }
+  .qr-card{ width:240px; }
+  .qr-img{ width:190px; height:190px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Cabeçalho -->
+  <div class="content-block">
+    <div class="header-block">
+      <img src="https://baserow.simplexsolucoes.com.br/media/user_files/WE8kutKMAmL1PMICsfR9k56kUHaNYz8p_4566a63159be5bf535dc3a25811394b215dcd9a04a1a44d9f14321e296b6a9c3.png" alt="Logo" class="logo-img">
+      <div class="stamp-box">
+        <h2>Fatura de Energia por Assinatura</h2>
+        <div class="ref">REF: ${refMes} <span class="badge">Compensação: ${compensacaoTipo}</span></div>
+        <div class="discount">Desconto de 30% sobre a energia injetada!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cliente -->
+  <div class="content-block">
+    <div class="customer-block">
+      <div class="customer-details">
+        <div class="info-row"><div class="info-label">Titular:</div><div class="info-value">${titular}</div></div>
+        <div class="info-row"><div class="info-label">Endereço:</div><div class="info-value">${endereco}</div></div>
+        <div class="info-row"><div class="info-label">Data da leitura:</div><div class="info-value">${leituraTxt}</div></div>
+      </div>
+      <div class="total-box">
+        <h3>Total a pagar com desconto</h3><!-- (se preferir: "Total a pagar") -->
+        <div class="total-value">${fmtBR(totalAPagarComAss,true)}</div>
+        ${vencimentoAssinatura ? `<div class="due-date">Vencimento: <strong>${vencimentoAssinatura}</strong></div>` : ''}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="content-block">
+    <div class="billing-block">
+      <table class="billing-table">
+        <thead>
+          <tr><th>Itens da Fatura - Dados de faturamento</th><th class="center">kWh</th><th class="value-col">Valor</th></tr>
+        </thead>
+        <tbody>
+          ${tbodyRows}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Comparação energia -->
+  <div class="content-block">
+    <div class="comparison-block">
+      <div class="comparison-grid">
+        <div class="comparison-row">
+          <div class="comparison-label">Sem a assinatura você pagaria:</div>
+          <div class="comparison-value value-without">${fmtBR(semAssinatura,true)}</div>
+        </div>
+        <div class="comparison-row">
+          <div class="comparison-label">Com a assinatura você pagará:</div>
+          <div class="comparison-value value-with">${fmtBR(comAssinatura,true)}</div>
+        </div>
+      </div>
+      <div class="savings-row">
+        <div class="savings-label">Sua economia de 30% em energia será:</div>
+        <div class="savings-value">${fmtBR(economia,true)}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acumulado -->
+  <div class="content-block">
+    <div class="accumulated-row">
+      <div class="accumulated-label">Economia acumulada desde a adesão:</div>
+      <div class="accumulated-value">${fmtBR(acumuladoAtual,true)}</div>
+    </div>
+  </div>
+
+  <!-- PIX (imagem + QR) -->
+  <div class="content-block pix-block">
+    <div class="pix-wrap">
+      <div class="pix-left">
+        <!-- troque pelo endereço da sua arte quando quiser -->
+        <img class="apontou-img" src="https://baserow.simplexsolucoes.com.br/media/user_files/5v07HJhMjzvEmtcUCUnswsTMuP8flFcE_27154fb0fd0d64e7a375f5c78eba2a289604d297b46d93963bd25f875beee87f.png" alt="Apontou, pagou!">
+      </div>
+      <div class="pix-right">
+        <div class="qr-card">
+          <div class="qr-title">QR CODE PARA PAGAMENTO DA FATURA</div>
+          ${
+            qrDataUri
+              ? `<img class="qr-img" src="${qrDataUri}" alt="QR Code PIX">`
+              : `<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;border:2px dashed #999;border-radius:8px;color:#777;font-size:12px;text-align:center;padding:8px">
+                   QR não disponível
+                 </div>`
+          }
+        </div>
+        ${ pixCopiaECola ? `<div class="copia-cola">${pixCopiaECola}</div>` : `` }
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+// ====== Saída ======
+return [{ json: { ...j, html, qrDataUri, pixCopiaECola } }];

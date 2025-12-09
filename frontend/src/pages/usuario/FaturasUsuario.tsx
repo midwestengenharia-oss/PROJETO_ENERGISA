@@ -400,6 +400,9 @@ export function FaturasUsuario() {
                                             UC
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                            Apelido
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                             Vencimento
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -434,6 +437,9 @@ export function FaturasUsuario() {
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                                                     {uc ? formatarCodigoUC(uc) : `UC #${fatura.uc_id}`}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                                                    {uc?.apelido || '-'}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                                                     {formatarData(fatura.data_vencimento)}

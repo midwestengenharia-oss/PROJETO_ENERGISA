@@ -34,3 +34,9 @@ playwright>=1.41.0
 
 # Utilitários
 python-dateutil>=2.8.2
+
+# PDF e OCR (para extração de faturas)
+pdfplumber>=0.10.0
+pypdf>=4.0.0
+pillow>=10.2.0
+pytesseract>=0.3.10

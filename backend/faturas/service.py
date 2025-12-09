@@ -598,6 +598,206 @@ class FaturasService:
         total = result.count if result.count else len(historicos)
         return historicos, total
 
+    # ========== MÉTODOS DE EXTRAÇÃO DE DADOS ==========
+
+    async def processar_extracao_fatura(self, fatura_id: int) -> dict:
+        """
+        Processa extração de dados estruturados de uma fatura.
+
+        Args:
+            fatura_id: ID da fatura
+
+        Returns:
+            Dados extraídos estruturados
+
+        Raises:
+            NotFoundError: Se fatura não existir
+            ValidationError: Se fatura não tiver PDF ou extração falhar
+        """
+        from backend.faturas.pdf_extractor import FaturaPDFExtractor
+        from backend.faturas.python_parser import FaturaPythonParser
+
+        # 1. Buscar fatura com PDF
+        result = self.db.table("faturas").select("id, pdf_base64, extracao_status").eq("id", fatura_id).single().execute()
+
+        if not result.data:
+            raise NotFoundError(f"Fatura {fatura_id} não encontrada")
+
+        fatura = result.data
+
+        if not fatura.get("pdf_base64"):
+            raise ValidationError("Fatura não possui PDF armazenado")
+
+        # 2. Atualizar status → PROCESSANDO
+        self.db.table("faturas").update({
+            "extracao_status": "PROCESSANDO"
+        }).eq("id", fatura_id).execute()
+
+        try:
+            # 3. Extrair texto do PDF
+            logger.info(f"Extraindo texto do PDF da fatura {fatura_id}")
+            extractor = FaturaPDFExtractor()
+            texto = extractor.extrair_texto_pdf(fatura["pdf_base64"])
+
+            # 4. Parsear texto para estrutura de dados
+            logger.info(f"Parseando texto da fatura {fatura_id}")
+            parser = FaturaPythonParser()
+            dados_extraidos = parser.parse(texto)
+
+            # 5. Converter para dict e salvar no banco
+            dados_dict = dados_extraidos.dict(by_alias=True, exclude_none=False)
+
+            self.db.table("faturas").update({
+                "dados_extraidos": dados_dict,
+                "extracao_status": "CONCLUIDA",
+                "extracao_error": None,
+                "extraido_em": datetime.now(timezone.utc).isoformat()
+            }).eq("id", fatura_id).execute()
+
+            logger.info(f"Extração da fatura {fatura_id} concluída com sucesso")
+            return dados_dict
+
+        except Exception as e:
+            # 6. Em caso de erro, salvar erro no banco
+            error_msg = str(e)
+            logger.error(f"Erro ao extrair fatura {fatura_id}: {error_msg}")
+
+            self.db.table("faturas").update({
+                "extracao_status": "ERRO",
+                "extracao_error": error_msg[:500]  # Limitar tamanho
+            }).eq("id", fatura_id).execute()
+
+            raise ValidationError(f"Erro ao extrair dados da fatura: {error_msg}")
+
+    async def processar_lote_faturas(
+        self,
+        filtros: Optional[dict] = None,
+        limite: int = 10
+    ) -> dict:
+        """
+        Processa extração de múltiplas faturas em lote.
+
+        Args:
+            filtros: Filtros para selecionar faturas (uc_id, mes, ano, etc)
+            limite: Número máximo de faturas a processar
+
+        Returns:
+            Resultado do processamento em lote
+        """
+        # 1. Buscar faturas pendentes de extração
+        query = self.db.table("faturas").select("id, numero_fatura, uc_id, mes_referencia, ano_referencia")
+
+        # Filtrar apenas faturas com PDF e status PENDENTE
+        query = query.eq("extracao_status", "PENDENTE").not_.is_("pdf_base64", "null")
+
+        # Aplicar filtros adicionais
+        if filtros:
+            if filtros.get("uc_id"):
+                query = query.eq("uc_id", filtros["uc_id"])
+            if filtros.get("mes_referencia"):
+                query = query.eq("mes_referencia", filtros["mes_referencia"])
+            if filtros.get("ano_referencia"):
+                query = query.eq("ano_referencia", filtros["ano_referencia"])
+
+        # Limitar quantidade
+        query = query.limit(limite).order("ano_referencia", desc=True).order("mes_referencia", desc=True)
+
+        result = query.execute()
+        faturas_pendentes = result.data or []
+
+        if not faturas_pendentes:
+            return {
+                "total": 0,
+                "processadas": 0,
+                "sucesso": 0,
+                "erro": 0,
+                "resultados": []
+            }
+
+        # 2. Processar cada fatura
+        resultados = []
+        sucesso_count = 0
+        erro_count = 0
+
+        for fatura in faturas_pendentes:
+            try:
+                dados = await self.processar_extracao_fatura(fatura["id"])
+                sucesso_count += 1
+                resultados.append({
+                    "fatura_id": fatura["id"],
+                    "numero_fatura": fatura.get("numero_fatura"),
+                    "referencia": f"{fatura['mes_referencia']:02d}/{fatura['ano_referencia']}",
+                    "status": "sucesso",
+                    "dados": dados
+                })
+            except Exception as e:
+                erro_count += 1
+                resultados.append({
+                    "fatura_id": fatura["id"],
+                    "numero_fatura": fatura.get("numero_fatura"),
+                    "referencia": f"{fatura['mes_referencia']:02d}/{fatura['ano_referencia']}",
+                    "status": "erro",
+                    "erro": str(e)
+                })
+
+        return {
+            "total": len(faturas_pendentes),
+            "processadas": len(resultados),
+            "sucesso": sucesso_count,
+            "erro": erro_count,
+            "resultados": resultados
+        }
+
+    async def obter_dados_extraidos(self, fatura_id: int) -> Optional[dict]:
+        """
+        Obtém dados já extraídos de uma fatura.
+
+        Args:
+            fatura_id: ID da fatura
+
+        Returns:
+            Dados extraídos ou None se não existir
+
+        Raises:
+            NotFoundError: Se fatura não existir
+        """
+        result = self.db.table("faturas").select(
+            "id, dados_extraidos, extracao_status, extracao_error, extraido_em"
+        ).eq("id", fatura_id).single().execute()
+
+        if not result.data:
+            raise NotFoundError(f"Fatura {fatura_id} não encontrada")
+
+        fatura = result.data
+
+        if fatura["extracao_status"] != "CONCLUIDA":
+            return None
+
+        return fatura.get("dados_extraidos")
+
+    async def reprocessar_extracao(self, fatura_id: int) -> dict:
+        """
+        Reprocessa extração de uma fatura (mesmo que já tenha sido processada).
+
+        Args:
+            fatura_id: ID da fatura
+
+        Returns:
+            Dados extraídos
+
+        Raises:
+            NotFoundError: Se fatura não existir
+            ValidationError: Se extração falhar
+        """
+        # Resetar status para PENDENTE
+        self.db.table("faturas").update({
+            "extracao_status": "PENDENTE",
+            "extracao_error": None
+        }).eq("id", fatura_id).execute()
+
+        # Processar novamente
+        return await self.processar_extracao_fatura(fatura_id)
+
 
 # Instância global do serviço
 faturas_service = FaturasService()

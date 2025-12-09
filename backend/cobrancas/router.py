@@ -2,8 +2,11 @@
 Cobranças Router - Endpoints da API para Cobranças
 """
 
-from fastapi import APIRouter, Depends, Query
-from typing import Optional, List
+from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import HTMLResponse
+from typing import Optional, List, Annotated
+from decimal import Decimal
+from datetime import date
 from ..core.security import get_current_user, get_current_active_user, require_perfil, CurrentUser
 from .schemas import (
     CobrancaCreateRequest,
@@ -199,3 +202,191 @@ async def cancelar_cobranca(
         user_id=current_user.id,
         perfis=current_user.perfis
     )
+
+
+# ========== ENDPOINTS DE GERAÇÃO AUTOMÁTICA ==========
+
+@router.post(
+    "/gerar-automatica",
+    response_model=CobrancaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Gerar cobrança automática",
+    description="Gera cobrança automaticamente a partir de fatura com dados extraídos",
+    dependencies=[Depends(require_perfil("superadmin", "proprietario", "gestor"))]
+)
+async def gerar_cobranca_automatica(
+    fatura_id: int = Query(..., description="ID da fatura"),
+    beneficiario_id: int = Query(..., description="ID do beneficiário"),
+    tarifa_aneel: Optional[Decimal] = Query(None, description="Tarifa ANEEL (R$/kWh). Se não fornecida, será extraída da fatura"),
+    fio_b: Optional[Decimal] = Query(None, description="Valor do Fio B (opcional)"),
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Gera cobrança automaticamente a partir de fatura.
+
+    Fluxo completo:
+    1. Verifica se fatura tem dados extraídos (processa se necessário)
+    2. Calcula cobrança usando CobrancaCalculator (GD I/II, 30% desconto)
+    3. Gera relatório HTML profissional
+    4. Salva no banco com status RASCUNHO
+
+    Args:
+        fatura_id: ID da fatura de origem
+        beneficiario_id: ID do beneficiário
+        tarifa_aneel: Tarifa base (opcional, extrai da fatura se não fornecida)
+        fio_b: Valor Fio B (opcional)
+
+    Returns:
+        Cobrança criada com todos os campos calculados
+    """
+    resultado = await service.gerar_cobranca_automatica(
+        fatura_id=fatura_id,
+        beneficiario_id=beneficiario_id,
+        tarifa_aneel=tarifa_aneel,
+        fio_b=fio_b
+    )
+    return resultado
+
+
+@router.post(
+    "/gerar-lote-usina",
+    summary="Gerar cobranças em lote por usina",
+    description="Gera cobranças automaticamente para todos beneficiários ativos de uma usina",
+    dependencies=[Depends(require_perfil("superadmin", "proprietario", "gestor"))]
+)
+async def gerar_lote_usina(
+    usina_id: int = Query(..., description="ID da usina"),
+    mes_referencia: int = Query(..., ge=1, le=12, description="Mês de referência"),
+    ano_referencia: int = Query(..., ge=2000, le=2100, description="Ano de referência"),
+    tarifa_aneel: Optional[Decimal] = Query(None, description="Tarifa ANEEL (R$/kWh)"),
+    fio_b: Optional[Decimal] = Query(None, description="Valor do Fio B"),
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Gera cobranças em lote para todos beneficiários de uma usina.
+
+    Para cada beneficiário ativo:
+    - Busca fatura do mês/ano especificado
+    - Verifica se já existe cobrança (pula se existir)
+    - Gera cobrança automaticamente
+
+    Args:
+        usina_id: ID da usina
+        mes_referencia: Mês (1-12)
+        ano_referencia: Ano
+        tarifa_aneel: Tarifa base (opcional)
+        fio_b: Valor Fio B (opcional)
+
+    Returns:
+        Resumo com total processado, sucessos, erros e detalhes
+    """
+    resultado = await service.gerar_lote_usina_automatico(
+        usina_id=usina_id,
+        mes_referencia=mes_referencia,
+        ano_referencia=ano_referencia,
+        tarifa_aneel=tarifa_aneel,
+        fio_b=fio_b
+    )
+    return resultado
+
+
+@router.get(
+    "/{cobranca_id}/relatorio-html",
+    response_class=HTMLResponse,
+    summary="Obter relatório HTML",
+    description="Retorna o relatório HTML gerado da cobrança"
+)
+async def obter_relatorio_html(
+    cobranca_id: int,
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Retorna o relatório HTML da cobrança.
+
+    O HTML já vem formatado e pronto para:
+    - Visualização no navegador
+    - Envio por email
+    - Download como arquivo
+    """
+    html = await service.obter_html_relatorio(cobranca_id)
+
+    if not html:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Relatório HTML não encontrado"
+        )
+
+    return HTMLResponse(content=html)
+
+
+@router.put(
+    "/{cobranca_id}/vencimento",
+    response_model=CobrancaResponse,
+    summary="Editar vencimento",
+    description="Altera a data de vencimento de uma cobrança em rascunho",
+    dependencies=[Depends(require_perfil("superadmin", "proprietario", "gestor"))]
+)
+async def editar_vencimento(
+    cobranca_id: int,
+    nova_data: date = Query(..., description="Nova data de vencimento"),
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Edita o vencimento de uma cobrança.
+
+    Só permite edição de cobranças com:
+    - Status RASCUNHO
+    - vencimento_editavel = true
+
+    Args:
+        cobranca_id: ID da cobrança
+        nova_data: Nova data de vencimento
+
+    Returns:
+        Cobrança atualizada
+    """
+    resultado = await service.editar_vencimento(
+        cobranca_id=cobranca_id,
+        nova_data=nova_data,
+        user_id=current_user.id,
+        perfis=current_user.perfis
+    )
+    return resultado
+
+
+@router.post(
+    "/{cobranca_id}/aprovar",
+    response_model=CobrancaResponse,
+    summary="Aprovar cobrança",
+    description="Aprova cobrança em rascunho e muda status para EMITIDA",
+    dependencies=[Depends(require_perfil("superadmin", "proprietario", "gestor"))]
+)
+async def aprovar_cobranca(
+    cobranca_id: int,
+    enviar_email: bool = Query(False, description="Enviar email ao beneficiário após aprovar"),
+    current_user: Annotated[CurrentUser, Depends(get_current_active_user)] = None,
+):
+    """
+    Aprova cobrança em rascunho.
+
+    Ações:
+    - Valida que cobrança está em RASCUNHO
+    - Muda status para EMITIDA
+    - Define vencimento_editavel = false
+    - Opcionalmente envia email ao beneficiário
+
+    Args:
+        cobranca_id: ID da cobrança
+        enviar_email: Se true, envia relatório por email
+
+    Returns:
+        Cobrança aprovada
+    """
+    resultado = await service.aprovar_cobranca(
+        cobranca_id=cobranca_id,
+        enviar_email=enviar_email,
+        user_id=current_user.id,
+        perfis=current_user.perfis
+    )
+    return resultado
