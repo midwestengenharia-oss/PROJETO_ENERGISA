@@ -41,6 +41,10 @@ pypdf>=4.0.0
 pillow>=10.2.0
 pytesseract>=0.3.10
 
+<<<<<<< HEAD
+# IA Parser (fallback para extração de faturas)
+=======
 # LLM para extração com IA
 llmwhisperer-client>=0.14.0
+>>>>>>> 1182bab7cdb02b0d11ce642df063597fb3902f27
 openai>=1.0.0

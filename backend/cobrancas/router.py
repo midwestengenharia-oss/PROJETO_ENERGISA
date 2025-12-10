@@ -282,10 +282,8 @@ async def gerar_lote_usina(
     """
     resultado = await service.gerar_lote_usina_automatico(
         usina_id=usina_id,
-        mes_referencia=mes_referencia,
-        ano_referencia=ano_referencia,
-        tarifa_aneel=tarifa_aneel,
-        fio_b=fio_b
+        mes=mes_referencia,
+        ano=ano_referencia
     )
     return resultado
 

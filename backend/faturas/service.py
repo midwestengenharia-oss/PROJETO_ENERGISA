@@ -601,6 +601,116 @@ class FaturasService:
 
     # ========== MÉTODOS DE EXTRAÇÃO DE DADOS ==========
 
+    def _verificar_dados_criticos(self, dados: dict) -> bool:
+        """
+        Verifica se dados críticos foram extraídos pelo parser.
+
+        Dados críticos para geração de cobrança:
+        - consumo_kwh OU energia injetada
+        - vencimento
+
+        Returns:
+            True se dados OK, False se precisa usar IA
+        """
+        # Verificar consumo
+        itens = dados.get("itens_fatura", {})
+        consumo = itens.get("consumo_kwh")
+        tem_consumo = consumo and consumo.get("quantidade")
+
+        # Verificar energia injetada
+        tem_injetada = (
+            len(itens.get("energia_injetada_ouc", []) or []) > 0 or
+            len(itens.get("energia_injetada_muc", []) or []) > 0
+        )
+
+        # Verificar vencimento
+        tem_vencimento = dados.get("vencimento") is not None
+
+        # Se não tem consumo E não tem injetada, dados incompletos
+        if not tem_consumo and not tem_injetada:
+            logger.warning("Dados críticos faltando: consumo e energia injetada")
+            return False
+
+        # Se não tem vencimento
+        if not tem_vencimento:
+            logger.warning("Dados críticos faltando: vencimento")
+            return False
+
+        return True
+
+    async def _extrair_com_ia(self, texto: str, fatura_id: int) -> dict:
+        """
+        Extrai dados da fatura usando IA (Claude/OpenAI).
+
+        Args:
+            texto: Texto extraído do PDF
+            fatura_id: ID da fatura (para logs)
+
+        Returns:
+            Dados estruturados
+        """
+        import os
+
+        # Verificar se tem API key configurada
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        if not anthropic_key and not openai_key:
+            logger.warning("Nenhuma API key de IA configurada (ANTHROPIC_API_KEY ou OPENAI_API_KEY)")
+            # Retornar dados vazios estruturados
+            return self._dados_vazios()
+
+        try:
+            from backend.faturas.ai_parser import FaturaAIParser
+
+            # Preferir Anthropic, fallback para OpenAI
+            provider = "anthropic" if anthropic_key else "openai"
+            logger.info(f"Usando parser IA ({provider}) para fatura {fatura_id}")
+
+            parser = FaturaAIParser(provider=provider)
+            dados = parser.parse(texto)
+
+            logger.info(f"Extração via IA concluída para fatura {fatura_id}")
+            return dados
+
+        except Exception as e:
+            logger.error(f"Erro ao extrair com IA para fatura {fatura_id}: {e}")
+            return self._dados_vazios()
+
+    def _dados_vazios(self) -> dict:
+        """Retorna estrutura de dados vazia"""
+        return {
+            "codigo_cliente": None,
+            "ligacao": None,
+            "data_apresentacao": None,
+            "mes_ano_referencia": None,
+            "vencimento": None,
+            "total_a_pagar": None,
+            "leitura_anterior_data": None,
+            "leitura_atual_data": None,
+            "dias": None,
+            "leitura_anterior": None,
+            "leitura_atual": None,
+            "itens_fatura": {
+                "consumo_kwh": None,
+                "energia_injetada_ouc": [],
+                "energia_injetada_muc": [],
+                "ajuste_lei_14300": None,
+                "lancamentos_e_servicos": []
+            },
+            "totais": {
+                "adicionais_bandeira": None,
+                "lancamentos_e_servicos": None,
+                "total_geral_fatura": None
+            },
+            "quadro_atencao": None,
+            "dados_instalacao": None,
+            "bandeira_tarifaria": None,
+            "consumo_total_kwh": None,
+            "energia_injetada_total_kwh": None,
+            "energia_compensada_total_kwh": None
+        }
+
     async def processar_extracao_fatura(self, fatura_id: int) -> dict:
         """
         Processa extração de dados estruturados de uma fatura.
@@ -639,6 +749,15 @@ class FaturasService:
             logger.info(f"Extraindo texto do PDF da fatura {fatura_id} com LLMWhisperer")
             from backend.faturas.llm_extractor import criar_extrator_llm
 
+<<<<<<< HEAD
+            # 4. Parsear texto para estrutura de dados (regex primeiro)
+            logger.info(f"Parseando texto da fatura {fatura_id} com parser Python")
+            parser = FaturaPythonParser()
+            dados_extraidos = parser.parse(texto)
+
+            # 5. Converter para dict
+            dados_dict = dados_extraidos.model_dump(mode='json', by_alias=True, exclude_none=False)
+=======
             llm_extractor, openai_parser = criar_extrator_llm()
             texto = llm_extractor.extract_from_pdf(fatura["pdf_base64"])
 
@@ -678,7 +797,16 @@ class FaturasService:
 
             # 6. Salvar dados extraídos com validação
             logger.info(f"Dados extraídos: {json.dumps(dados_dict, indent=2, ensure_ascii=False)[:500]}...")
+>>>>>>> 1182bab7cdb02b0d11ce642df063597fb3902f27
 
+            # 6. Verificar se dados críticos foram extraídos, senão usar IA
+            dados_criticos_ok = self._verificar_dados_criticos(dados_dict)
+
+            if not dados_criticos_ok:
+                logger.warning(f"Parser regex não extraiu dados críticos, tentando IA para fatura {fatura_id}")
+                dados_dict = await self._extrair_com_ia(texto, fatura_id)
+
+            # 7. Salvar no banco
             self.db.table("faturas").update({
                 "dados_extraidos": dados_dict,
                 "extracao_avisos": resultado_validacao.avisos,

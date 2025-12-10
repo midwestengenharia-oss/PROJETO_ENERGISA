@@ -1,0 +1,57 @@
+{
+  "fatura": {
+    "id": 40616,
+    "uc_id": 191,
+    "codigo_cliente": "6/4967352-8",
+    "mes_referencia": 11,
+    "ano_referencia": 2025,
+    "valor_fatura": 110.49
+  },
+  "dados_extraidos_ia": {
+    "fatura_id": 40616,
+    "uc_id": 191,
+    "codigo_cliente": "6/4967352-8",
+    "ligacao": "BIFASICO",
+    "vencimento": "2025-12-17",
+    "modelo_gd": "GDII",
+    "calculo_cobranca": {
+      "consumo_kwh": 442,
+      "injetada_kwh": 442,
+      "compensado_kwh": 442,
+      "tarifa_energia": 1.10138,
+      "valor_consumo": 486.81,
+      "valor_injetada": 486.81,
+      "valor_ajuste_gdii": 63.63,
+      "valor_bandeira": 0.0,
+      "valor_iluminacao": 46.86,
+      "saldo_acumulado_kwh": 1453
+    }
+  },
+  "cobranca_calculada": {
+    "modelo_gd": "GDII",
+    "tipo_ligacao": "BIFASICO",
+    "consumo_kwh": 442.0,
+    "injetada_kwh": 442.0,
+    "compensado_kwh": 442.0,
+    "gap_kwh": 0.0,
+    "tarifa_base": 1.10138,
+    "tarifa_assinatura": 0.770966,
+    "desconto_percentual": 30.0,
+    "valor_energia_base": 486.80996,
+    "valor_energia_assinatura": 340.766972,
+    "taxa_minima_kwh": 50,
+    "taxa_minima_valor": 0.0,
+    "energia_excedente_kwh": 0,
+    "energia_excedente_valor": 0.0,
+    "disponibilidade_valor": 63.63,
+    "bandeiras_valor": 0.0,
+    "iluminacao_valor": 46.86,
+    "valor_sem_assinatura": 597.29996,
+    "valor_com_assinatura": 451.256972,
+    "economia_mes": 146.042988,
+    "valor_total_cobranca": 451.256972,
+    "vencimento_fatura": "2025-12-17",
+    "vencimento_cobranca": "2025-12-16",
+    "saldo_acumulado_kwh": 1453
+  }
+}

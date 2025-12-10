@@ -15,7 +15,8 @@
       "Bash(git pull:*)",
       "Bash(git add:*)",
       "Bash(docker exec:*)",
-      "Bash(docker-compose up:*)"
+      "Bash(docker-compose up:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,79 @@
+{
+  "fatura_id": 40616,
+  "uc_id": 191,
+  "fonte": "IA_GPT4o",
+  "codigo_cliente": "6/4967352-8",
+  "ligacao": "BIFASICO",
+  "bandeira_tarifaria": "VERDE",
+  "mes_ano_referencia": "2025-11",
+  "vencimento": "2025-12-17",
+  "data_apresentacao": "2025-12-10",
+  "dias": 31,
+  "leitura_anterior": 8072,
+  "leitura_anterior_data": "2025-10-27",
+  "leitura_atual": 8514,
+  "leitura_atual_data": "2025-11-27",
+  "consumo_total_kwh": 442,
+  "energia_injetada_total_kwh": 442,
+  "itens_fatura": {
+    "consumo_kwh": {
+      "quantidade": 442,
+      "preco_unit_com_tributos": 1.10138,
+      "valor": 486.81
+    },
+    "energia_injetada_ouc": [
+      {
+        "descricao": "Energia Atv Injetada GDII oUC",
+        "tipo_gd": "GDII",
+        "quantidade": 442,
+        "preco_unit_com_tributos": 1.10138,
+        "valor": -486.81,
+        "mes_ano_referencia_item": "2025-11"
+      }
+    ],
+    "energia_injetada_muc": [],
+    "ajuste_lei_14300": {
+      "quantidade": 442,
+      "preco_unit_com_tributos": 0.14396,
+      "valor": 63.63
+    },
+    "lancamentos_e_servicos": [
+      {
+        "descricao": "Contrib de Ilum Pub",
+        "valor": 46.86
+      }
+    ]
+  },
+  "totais": {
+    "adicionais_bandeira": 0.0,
+    "lancamentos_e_servicos": 46.86,
+    "total_geral_fatura": 110.49
+  },
+  "total_a_pagar": 110.49,
+  "quadro_atencao": {
+    "saldo_acumulado": 1453,
+    "a_expirar_proximo_ciclo": 0,
+    "creditos_expirados": 0
+  },
+  "dados_instalacao": {
+    "numero_medidor": "08B592292",
+    "numero_instalacao": "4967352-2025-11-0",
+    "classe_consumo": "RESIDENCIAL",
+    "modalidade_tarifaria": "CONVENCIONAL",
+    "tensao_nominal": "127V",
+    "endereco": "RUA SEISCENTOS E UM, 30 - CASA 30A, PARANAITA, MT"
+  },
+  "modelo_gd": "GDII",
+  "calculo_cobranca": {
+    "consumo_kwh": 442,
+    "injetada_kwh": 442,
+    "compensado_kwh": 442,
+    "tarifa_energia": 1.10138,
+    "valor_consumo": 486.81,
+    "valor_injetada": 486.81,
+    "valor_ajuste_gdii": 63.63,
+    "valor_bandeira": 0.0,
+    "valor_iluminacao": 46.86,
+    "saldo_acumulado_kwh": 1453
+  }
+}

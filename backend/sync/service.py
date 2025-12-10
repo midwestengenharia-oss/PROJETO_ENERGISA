@@ -311,9 +311,18 @@ class SyncService:
                 logger.debug(f"      ℹ️ Nenhuma fatura encontrada para UC {cdc}")
                 return 0
 
+            # Ordena por ano/mês (mais recente primeiro) e pega apenas as 3 últimas
+            faturas_ordenadas = sorted(
+                faturas,
+                key=lambda f: (f.get("anoReferencia", 0), f.get("mesReferencia", 0)),
+                reverse=True
+            )[:3]
+
+            logger.debug(f"      📄 Processando {len(faturas_ordenadas)} faturas mais recentes (de {len(faturas)} total)")
+
             faturas_salvas = 0
 
-            for fatura_api in faturas:
+            for fatura_api in faturas_ordenadas:
                 try:
                     # Prepara dados da fatura
                     mes = fatura_api.get("mesReferencia")

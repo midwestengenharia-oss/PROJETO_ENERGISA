@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copia requirements primeiro (para cache de layers)
 COPY requirements.txt .
 
-# Instala dependencias Python
-RUN pip install --no-cache-dir -r requirements.txt
+# Instala dependencias Python (--no-deps evita conflitos de hash)
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --no-deps -r requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copia o codigo para /app/backend (mantem estrutura de imports)
 COPY . ./backend/

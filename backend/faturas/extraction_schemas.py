@@ -109,6 +109,28 @@ class QuadroAtencaoExtracted(BaseModel):
     """Informações do quadro de atenção (se existir)"""
     saldo_acumulado: Optional[Decimal] = None
     a_expirar_proximo_ciclo: Optional[Decimal] = None
+    creditos_expirados: Optional[Decimal] = Field(
+        None,
+        description="Créditos que já expiraram neste ciclo"
+    )
+
+
+class DadosInstalacaoExtracted(BaseModel):
+    """Dados da instalação/medidor"""
+    numero_medidor: Optional[str] = None
+    numero_instalacao: Optional[str] = None
+    classe_consumo: Optional[str] = Field(
+        None,
+        description="RESIDENCIAL, COMERCIAL, INDUSTRIAL, RURAL, PODER PUBLICO"
+    )
+    subclasse: Optional[str] = None
+    modalidade_tarifaria: Optional[str] = Field(
+        None,
+        description="CONVENCIONAL, BRANCA, AZUL, VERDE"
+    )
+    tensao_nominal: Optional[str] = None
+    carga_instalada: Optional[float] = None
+    endereco: Optional[str] = None
 
 
 class ConsumoMesExtracted(BaseModel):
@@ -207,9 +229,26 @@ class FaturaExtraidaSchema(BaseModel):
     quadro_atencao: Optional[QuadroAtencaoExtracted] = None
     estrutura_consumo: Optional[EstruturaConsumoExtracted] = None
     media_consumo_13m: Optional[MediaConsumo13MExtracted] = None
+    dados_instalacao: Optional[DadosInstalacaoExtracted] = None
 
     # Classe para Bandeira tarifária (se vier separado)
     bandeira_tarifaria: Optional[str] = None
+
+    # Consumo total do período (em kWh)
+    consumo_total_kwh: Optional[float] = Field(
+        None,
+        description="Consumo total em kWh do período (leitura atual - anterior ou valor faturado)"
+    )
+
+    # Geração/Compensação GD
+    energia_injetada_total_kwh: Optional[float] = Field(
+        None,
+        description="Total de energia injetada/compensada em kWh"
+    )
+    energia_compensada_total_kwh: Optional[float] = Field(
+        None,
+        description="Total de energia compensada da rede em kWh"
+    )
 
     class Config:
         json_schema_extra = {

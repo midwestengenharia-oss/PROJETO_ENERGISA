@@ -12,6 +12,7 @@ services:
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DEBUG=false
       - ENVIRONMENT=production
       - ALLOWED_ORIGINS=https://app.midwestengenharia.com.br

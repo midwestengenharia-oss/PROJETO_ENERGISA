@@ -132,7 +132,13 @@ class CobrancaCalculator:
         logger.info(f"Calculando cobrança - Modelo: {resultado.modelo_gd}, Ligação: {resultado.tipo_ligacao}")
 
         # 2. Métricas de energia
-        resultado.consumo_kwh = float(dados_extraidos.itens_fatura.consumo_kwh.quantidade or 0)
+        if dados_extraidos.itens_fatura.consumo_kwh and dados_extraidos.itens_fatura.consumo_kwh.quantidade:
+            resultado.consumo_kwh = float(dados_extraidos.itens_fatura.consumo_kwh.quantidade)
+        elif dados_extraidos.consumo_total_kwh:
+            resultado.consumo_kwh = float(dados_extraidos.consumo_total_kwh)
+        else:
+            resultado.consumo_kwh = 0.0
+
         resultado.injetada_kwh = dados_extraidos.calcular_injetada_total()
 
         # Compensado é o que foi efetivamente usado dos créditos
@@ -285,34 +291,47 @@ class CobrancaCalculator:
         """
         return vencimento_fatura - timedelta(days=1)
 
-    def validar_dados_minimos(self, dados: FaturaExtraidaSchema) -> tuple[bool, Optional[str]]:
+    def validar_dados_minimos(self, dados: FaturaExtraidaSchema, modo_relaxado: bool = False) -> tuple[bool, Optional[str]]:
         """
         Valida se os dados extraídos têm informação mínima para cálculo.
 
         Args:
             dados: Dados extraídos
+            modo_relaxado: Se True, não exige energia injetada (para beneficiários)
 
         Returns:
             Tupla (válido, mensagem_erro)
         """
-        # Verificar campos críticos
-        if not dados.itens_fatura.consumo_kwh:
+        # Verificar vencimento (sempre obrigatório)
+        if not dados.vencimento:
+            return False, "Data de vencimento não encontrada"
+
+        # Verificar consumo (relaxado: aceita se tiver saldo acumulado)
+        tem_consumo = (
+            dados.itens_fatura.consumo_kwh and
+            dados.itens_fatura.consumo_kwh.quantidade is not None
+        )
+
+        tem_saldo = (
+            dados.quadro_atencao and
+            dados.quadro_atencao.saldo_acumulado is not None
+        )
+
+        if not tem_consumo and not tem_saldo:
             return False, "Consumo em kWh não encontrado"
 
-        if dados.itens_fatura.consumo_kwh.quantidade is None:
-            return False, "Quantidade de consumo não encontrada"
-
-        # Verificar se tem energia injetada OU é fatura sem GD
+        # Verificar energia injetada (apenas se não for modo relaxado)
         tem_injetada = (
             len(dados.itens_fatura.energia_injetada_ouc) > 0 or
             len(dados.itens_fatura.energia_injetada_muc) > 0
         )
 
-        if not tem_injetada:
-            return False, "Nenhuma energia injetada encontrada (não é fatura GD?)"
-
-        # Verificar vencimento
-        if not dados.vencimento:
-            return False, "Data de vencimento não encontrada"
+        if not modo_relaxado and not tem_injetada:
+            # Verificar se tem saldo acumulado (beneficiário recebendo créditos)
+            if not tem_saldo:
+                return False, "Nenhuma energia injetada encontrada (não é fatura GD?)"
+            else:
+                # Tem saldo, é beneficiário recebendo créditos - OK
+                logger.info("Fatura sem injeção direta, mas com saldo GD - beneficiário")
 
         return True, None
