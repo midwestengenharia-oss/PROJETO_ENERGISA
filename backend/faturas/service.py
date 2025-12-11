@@ -749,15 +749,6 @@ class FaturasService:
             logger.info(f"Extraindo texto do PDF da fatura {fatura_id} com LLMWhisperer")
             from backend.faturas.llm_extractor import criar_extrator_llm
 
-<<<<<<< HEAD
-            # 4. Parsear texto para estrutura de dados (regex primeiro)
-            logger.info(f"Parseando texto da fatura {fatura_id} com parser Python")
-            parser = FaturaPythonParser()
-            dados_extraidos = parser.parse(texto)
-
-            # 5. Converter para dict
-            dados_dict = dados_extraidos.model_dump(mode='json', by_alias=True, exclude_none=False)
-=======
             llm_extractor, openai_parser = criar_extrator_llm()
             texto = llm_extractor.extract_from_pdf(fatura["pdf_base64"])
 
@@ -794,10 +785,6 @@ class FaturasService:
                 logger.warning(f"Avisos encontrados na validação da fatura {fatura_id}:")
                 for aviso in resultado_validacao.avisos:
                     logger.warning(f"  [{aviso['severidade']}] {aviso['categoria']}.{aviso['campo']}: {aviso['mensagem']}")
-
-            # 6. Salvar dados extraídos com validação
-            logger.info(f"Dados extraídos: {json.dumps(dados_dict, indent=2, ensure_ascii=False)[:500]}...")
->>>>>>> 1182bab7cdb02b0d11ce642df063597fb3902f27
 
             # 6. Verificar se dados críticos foram extraídos, senão usar IA
             dados_criticos_ok = self._verificar_dados_criticos(dados_dict)

@@ -120,7 +120,9 @@ class SyncService:
                     # Faz refresh token ANTES de começar a sincronizar
                     logger.info(f"   🔄 Renovando token para CPF {cpf[:3]}***{cpf[-2:]}...")
                     if not svc._refresh_token():
-                        logger.warning(f"   ⏭️ CPF {cpf[:3]}***{cpf[-2:]}: falha no refresh, pulando")
+                        logger.warning(f"   ⏭️ CPF {cpf[:3]}***{cpf[-2:]}: falha no refresh - invalidando sessão")
+                        # Invalida a sessão para que o usuário saiba que precisa fazer login novamente
+                        SessionManager.delete_session(cpf)
                         continue
 
                     logger.info(f"   👤 Processando CPF {cpf[:3]}***{cpf[-2:]} ({len(ucs_do_cpf)} UCs)")
@@ -577,10 +579,11 @@ class SyncService:
             # Faz refresh token ANTES de sincronizar
             logger.info(f"   🔄 Renovando token...")
             if not svc._refresh_token():
-                logger.warning("   ⚠️ Falha no refresh token")
+                logger.warning("   ⚠️ Falha no refresh token - invalidando sessão")
+                SessionManager.delete_session(cpf_limpo)
                 return {
                     "success": False,
-                    "error": "Falha ao renovar sessão. Faça login novamente.",
+                    "error": "Sessão expirada. Faça login novamente na Energisa.",
                     **stats
                 }
 
@@ -645,8 +648,9 @@ class SyncService:
             # Faz refresh token ANTES de sincronizar
             logger.info(f"   🔄 Renovando token...")
             if not svc._refresh_token():
-                logger.warning("   ⚠️ Falha no refresh token")
-                return {"success": False, "error": "Falha ao renovar sessão. Faça login novamente."}
+                logger.warning("   ⚠️ Falha no refresh token - invalidando sessão")
+                SessionManager.delete_session(cpf_limpo)
+                return {"success": False, "error": "Sessão expirada. Faça login novamente na Energisa."}
 
             # Sincroniza
             uc_atualizada = await self._sincronizar_uc(svc, uc)
